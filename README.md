@@ -16,7 +16,7 @@ Built on [TrueForge](https://trueforge.dev) for the TrueFoundry × Polaris "Agen
 
 **How TrueForge was used.** It holds the agent's instructions, the `gst-reconcile` skill imported from GitHub, and our MCP connector with approval on both write tools. Code Mode lets sandbox scripts call tools without credentials, and our inbox watcher uses the session API to start a run when invoice mail arrives.
 
-**Real vs mocked.** The TrueForge runs, sandbox code, MCP server and approvals are real, and so is Gmail mode over IMAP/SMTP. GSTR-2B is a saved file, since the portal API needs a licensed GSP. Invoices and vendors are generated, a new month for every seed.
+**Real vs mocked.** The TrueForge runs, sandbox code, MCP server and approvals are real. The demo inbox is a local mail folder; Gmail mode (IMAP/SMTP) is built and tested against a simulated Gmail server, not yet a live account. GSTR-2B is a saved file, since the portal API needs a licensed GSP. Invoices and vendors are generated, a new month for every seed.
 
 **Known limits.** The MCP server has no auth of its own, so approvals exist only in TrueForge. Vendor addresses are plus-aliases of the demo inbox. It runs one company on flat files, and send limits reset with the inbox, not per run. B2B invoices only: no credit notes, reverse charge or OCR.
 
