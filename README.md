@@ -135,7 +135,7 @@ Run `python scripts/seed_inbox.py --reset`. The demo emails are appended straigh
 
 ## Demo
 
-The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md).
+The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md) and the submission write-up in [docs/SUBMISSION.md](docs/SUBMISSION.md).
 
 ## Tests
 
