@@ -4,8 +4,11 @@ Start the server first (python -m server), seed the inbox, then:
     python tests/e2e_mcp.py [http://127.0.0.1:8000/mcp]
 
 It lists the invoice emails, downloads every PDF, runs the skill's
-extract + reconcile scripts, compares the result with tests/answer_key.json,
-and checks the send/save guards refuse what they should.
+extract + reconcile scripts (with the reference parser standing in for the
+one the agent writes for Tally-style invoices), compares the result with the
+answer key of the month being served (tests/answer_key.json, or
+state/scenario/answer_key.json after seed_inbox.py --seed), and checks the
+send/save guards refuse what they should.
 """
 
 import asyncio
@@ -20,8 +23,12 @@ from mcp.client.streamable_http import streamablehttp_client
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "skills" / "gst-reconcile" / "scripts"))
+sys.path.insert(0, str(ROOT / "tests"))
+sys.path.insert(0, str(ROOT))
 from extract import extract_invoice  # noqa: E402
 from reconcile import reconcile  # noqa: E402
+from reference_tally_parser import parse  # noqa: E402
+from server import config  # noqa: E402
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000/mcp"
 
@@ -36,7 +43,9 @@ async def call(session, name, **args):
 
 
 async def main():
-    key = json.loads((ROOT / "tests" / "answer_key.json").read_text())
+    key_path = config.data_dir() / "answer_key.json"
+    key = json.loads((key_path if key_path.exists() else ROOT / "tests" / "answer_key.json").read_text())
+    print(f"Answer key: seed {key.get('seed')}, company {key['company_gstin']}")
     failures = []
 
     def check(ok, what):
@@ -62,15 +71,18 @@ async def main():
                         pdf = await call(session, "get_invoice_pdf", message_id=m["message_id"], filename=name)
                         path = Path(tmp) / f"{m['message_id']}_{name}"
                         path.write_bytes(base64.b64decode(pdf["content_base64"]))
-                        books.append(extract_invoice(str(path)))
+                        row = extract_invoice(str(path), str(Path(tmp) / "text"))
+                        if row["needs_manual_parse"]:
+                            row = parse((Path(tmp) / "text" / (path.stem + ".txt")).read_text(encoding="utf-8"), path.name)
+                        books.append(row)
             gstr2b = await call(session, "get_gstr2b", period=key["period"])
             report = reconcile(books, gstr2b)
 
             got = {}
             for f in report["findings"]:
                 got.setdefault(f["category"], []).append(f["invoice_number"])
-            for cat, invs in key["findings"].items():
-                want = [i[0] if isinstance(i, list) else i for i in invs]
+            for cat in set(got) | set(key["findings"]):
+                want = [i[0] if isinstance(i, list) else i for i in key["findings"].get(cat, [])]
                 check(sorted(got.get(cat, [])) == sorted(want), f"{cat}: {want} (got {got.get(cat)})")
             check(report["summary"]["itc_at_risk"] == key["itc_at_risk_total"],
                   f"ITC at risk {key['itc_at_risk_total']} (got {report['summary']['itc_at_risk']})")
@@ -93,6 +105,12 @@ async def main():
             r = await call(session, "save_itc_register", period=key["period"],
                            claims=[{"supplier_gstin": v["gstin"], "gstr2b_invoice_number": "NOPE-1", "itc": 100}])
             check(r["status"] == "refused", "refuses to claim ITC on an invoice not in GSTR-2B")
+            na = [(s["ctin"], i["inum"]) for s in gstr2b.get("data", gstr2b)["docdata"]["b2b"]
+                  for i in s["inv"] if i.get("itcavl") == "N"]
+            if na:
+                r = await call(session, "save_itc_register", period=key["period"],
+                               claims=[{"supplier_gstin": na[0][0], "gstr2b_invoice_number": na[0][1], "itc": 1}])
+                check(r["status"] == "refused", "refuses to claim ITC that GSTR-2B marks not available")
             ok_claims = [{"supplier_gstin": m["supplier_gstin"], "gstr2b_invoice_number": m["invoice_number"],
                           "itc": m["itc"]} for m in report["matched"]]
             r = await call(session, "save_itc_register", period=key["period"], claims=ok_claims)

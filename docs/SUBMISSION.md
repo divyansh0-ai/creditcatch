@@ -11,12 +11,13 @@ Indian businesses can claim back the GST they pay on purchases (input tax credit
 Asked to "Reconcile our August 2026 purchases", CreditCatch, running on TrueForge:
 
 1. Reads the invoice emails and downloads each PDF through our MCP server, from code it writes and runs in a Daytona sandbox.
-2. Runs the `gst-reconcile` skill's scripts in the sandbox to extract invoice fields, validate GSTIN checksums and match the books against GSTR-2B. Every rupee figure comes from code, not the model.
-3. Asks the user when two invoices only look alike (`KFM-118` vs `KFM/2026-27/118`).
-4. Drafts one email per vendor with a problem and holds each one for approval.
-5. Saves the ITC register after approval.
+2. Extracts the invoice fields with the `gst-reconcile` skill. The extractor refuses to guess on layouts it doesn't know, so when vendors send Tally-style invoices the agent reads the page text and writes a parser for that layout on the spot, and every invoice must pass an arithmetic check before it counts.
+3. Validates GSTIN checksums and matches the books against GSTR-2B. Every rupee figure comes from code, not the model.
+4. Asks the user when two invoices only look alike (`KFM-118` vs `KFM/2026-27/118`).
+5. Drafts one email per vendor with a problem and holds each one for approval.
+6. Saves the ITC register after approval.
 
-On the demo data (15 invoices, 8 vendors, 7 planted problems) it finds all 7 and reports ₹1,05,000 of ITC at risk. It claims ₹1,40,605 that GSTR-2B supports and emails the 4 vendors at fault.
+Nothing is canned. `seed_inbox.py --seed <any number>` generates a new month: one of four businesses, 6 to 10 vendors, three invoice layouts, random amounts and numbering, and a random set of nine kinds of problems, plus the kind of noise a real inbox has (a forwarded duplicate, a price list, a statement of account). The generator writes an answer key from what it planted, and the skill's scripts match it on the fixed month and 40 random ones (`tests/test_scenarios.py`). On the fixed month (15 invoices, 8 vendors, 7 planted problems) the agent found all 7, reported ₹1,05,000 of ITC at risk, and emailed the 4 vendors at fault.
 
 ## Safety boundaries
 

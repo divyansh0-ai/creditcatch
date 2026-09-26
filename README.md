@@ -8,7 +8,7 @@ Built on [TrueForge](https://trueforge.dev) for the TrueFoundry × Polaris "Agen
 
 When a business buys something it pays GST to the supplier and can claim that tax back as ITC. It can only claim it if the supplier reported the same invoice to the government, which shows up in the buyer's monthly GSTR-2B statement. When an invoice is missing there, or the amount or tax head is wrong, the credit is lost until the supplier fixes it. Accountants match these by hand every month and then chase each vendor by email.
 
-In the demo month, CreditCatch finds **₹1,05,000 of ITC at risk** across 15 invoices from 8 vendors.
+In the fixed demo month, CreditCatch finds **₹1,05,000 of ITC at risk** across 15 invoices from 8 vendors. Nothing about that month is special: give the demo any number and it generates a different month (another business, other vendors, amounts, invoice layouts and problems), and the agent has to work it out from scratch. See [Every month is different](#every-month-is-different).
 
 ## How it works
 
@@ -26,12 +26,12 @@ flowchart LR
 | Part | What it is |
 |---|---|
 | `server/` | The MCP server. Read tools for the inbox, GSTR-2B and vendor list. Two write tools, `send_vendor_email` and `save_itc_register`, marked destructive and guarded in code. Every call is logged to `state/audit.jsonl`. |
-| `skills/gst-reconcile/` | The TrueForge skill: `SKILL.md` (the procedure), `extract.py` (invoice PDF to fields), `gstin.py` (GSTIN checksum), `reconcile.py` (books vs GSTR-2B). |
+| `skills/gst-reconcile/` | The TrueForge skill: `SKILL.md` (the procedure), `extract.py` (invoice PDF to fields; refuses to guess on layouts it doesn't know), `check_books.py` (every invoice's arithmetic must add up), `gstin.py` (GSTIN checksum), `reconcile.py` (books vs GSTR-2B). |
 | `agent/instructions.md` | The agent's system prompt. |
-| `data/generate.py` | Builds the synthetic demo data in `data/demo/`: invoice PDFs, the emails that carry them, a GSTR-2B file and a vendor master. |
-| `scripts/seed_inbox.py` | Puts the demo emails into the inbox, and resets the demo. |
+| `data/generate.py` | Builds the synthetic data: invoice PDFs in three layouts, the emails that carry them, a GSTR-2B file, a vendor master and an answer key. The fixed month is in `data/demo/`; `--seed N` makes a random one. |
+| `scripts/seed_inbox.py` | Puts a month's emails into the inbox and resets the demo (`--seed N` for a random month). |
 
-In a run, the agent writes a Python script that runs in the Daytona sandbox and pulls every PDF and the GSTR-2B through the MCP tools (TrueForge Code Mode, so no credentials enter the sandbox). It then runs the skill's scripts to extract and match, asks you about anything ambiguous, drafts one email per vendor, and saves the ITC register.
+In a run, the agent writes a Python script that runs in the Daytona sandbox and pulls every PDF and the GSTR-2B through the MCP tools (TrueForge Code Mode, so no credentials enter the sandbox). It runs the skill's extractor, and when invoices arrive in a layout the extractor can't read, it reads the page text and writes a parser for that layout on the spot, then proves its output with `check_books.py` before anything is matched. It then reconciles, asks you about anything ambiguous, drafts one email per vendor, and saves the ITC register.
 
 ## What it catches
 
@@ -44,6 +44,19 @@ In a run, the agent writes a Python script that runs in the Daytona sandbox and 
 | Same invoice, different number format | `KFM-118` vs `KFM/2026-27/118`: you're asked to confirm |
 | Duplicate in the inbox | `DDP/0902` forwarded twice, counted once |
 | In GSTR-2B but not in books | `SST/774`: reported by the supplier, never received |
+| Billed to the wrong GSTIN | random months: an invoice made out to the buyer's registration in another state |
+| ITC marked not available in GSTR-2B | random months: the portal lists the invoice with `itcavl: N` |
+| Not an invoice | random months: a price list or a statement of account in the inbox, set aside |
+
+## Every month is different
+
+```bash
+python scripts/seed_inbox.py --reset --seed 42        # or --seed random
+```
+
+This generates a new month into `state/scenario/` and loads it into the inbox; the running MCP server serves it straight away. Each seed picks one of four businesses (a bakery in Bengaluru, a garment maker in Tiruppur, a café in Hyderabad, a print shop in Pune), 6 to 10 of its vendors, 7 to 19 invoices with their own numbering styles and file names, and a random set of the problems above. Invoices come in three layouts: a plain one, a modern one, and one laid out like a Tally print, where labels and values sit in separate grid cells. The extractor can't read that one and says so, so the agent writes a parser for it live in the sandbox.
+
+The answer key for the month is in `state/scenario/answer_key.json`, written from what was planted rather than from running the reconciler, so you can check the agent's numbers against it. `python tests/test_scenarios.py` runs the skill's scripts over 40 random months and checks each one against its key. A plain `--reset` goes back to the fixed month.
 
 ## Safety boundaries
 
@@ -53,7 +66,8 @@ In a run, the agent writes a Python script that runs in the Daytona sandbox and 
 - The agent never types an email address. It names a vendor by GSTIN and the server looks up the address in the vendor master. Unknown GSTINs are refused.
 - In demo mode the recipient must be a plus-alias of the demo inbox, so nothing can reach a real company.
 - One email per vendor per run, and at most `MAX_EMAILS_PER_RUN` in total. Every invoice number the email is about must appear in its body.
-- `save_itc_register` refuses any claim that isn't in that period's GSTR-2B, or that claims more tax than GSTR-2B shows.
+- `save_itc_register` refuses any claim that isn't in that period's GSTR-2B, that claims more tax than GSTR-2B shows, or that GSTR-2B marks as ITC not available.
+- The extractor never guesses a field it can't tie to a label, and `check_books.py` rejects any invoice whose numbers don't add up, so a mis-read invoice can't reach the reconciliation.
 - The inbox is opened read-only and fetched with `BODY.PEEK`, so nothing is even marked read. There is no delete tool and no tool that edits the books.
 - Model and mail credentials stay on the TrueForge server and in `.env`; the sandbox only receives tool results.
 - Every tool call, allowed or refused, is appended to `state/audit.jsonl`.
@@ -140,16 +154,17 @@ The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md) and the submissio
 ## Tests
 
 ```bash
+python tests/test_scenarios.py    # the skill's scripts over the fixed month and 40 random ones, no server needed
 python -m server &                # with MAIL_BACKEND=local and a seeded inbox
-python tests/e2e_mcp.py
+python tests/e2e_mcp.py           # over MCP, against whichever month is loaded
 ```
 
-It checks that all seven planted problems are found, that ITC at risk is exactly ₹1,05,000, and that the server refuses an unknown GSTIN, a body that doesn't cite its invoices, a second email to the same vendor, and an ITC claim that GSTR-2B doesn't support.
+`e2e_mcp.py` checks that every planted problem is found, that ITC at risk matches the answer key exactly, and that the server refuses an unknown GSTIN, a body that doesn't cite its invoices, a second email to the same vendor, and an ITC claim that GSTR-2B doesn't support.
 
 ## Limitations
 
 - GSTR-2B comes from a saved file. The GST portal's API is only open to licensed GST Suvidha Providers, so the tool stands in for the file a taxpayer downloads from the portal.
-- `extract.py` reads text PDFs, not scans. OCR would be the next step.
+- `extract.py` reads text PDFs, not scans; a scanned invoice is flagged as unreadable rather than guessed. OCR would be the next step.
 - All companies, GSTINs and amounts are synthetic.
 
 ## AI tools used

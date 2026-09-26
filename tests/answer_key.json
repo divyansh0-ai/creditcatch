@@ -1,12 +1,29 @@
 {
+  "seed": null,
   "company_gstin": "29AAHCN4821K1Z4",
   "period": "082026",
   "invoices_in_books": 15,
   "emails": 16,
+  "pdfs": 16,
+  "non_invoice_documents": [],
+  "layouts": {
+    "shreepack_SP-26-27-0412.pdf": "classic",
+    "shreepack_SP-26-27-0419.pdf": "classic",
+    "shreepack_SP-26-27-0431.pdf": "classic",
+    "kaveriflour_KFM-118.pdf": "classic",
+    "kaveriflour_KFM-131.pdf": "classic",
+    "deccandairy_DDP-0871.pdf": "classic",
+    "deccandairy_DDP-0902.pdf": "classic",
+    "deccandairy_DDP-0934.pdf": "classic",
+    "malnadspice_MS-0823.pdf": "classic",
+    "malnadspice_MS-0839.pdf": "classic",
+    "punebakeq_PBE-26-0057.pdf": "classic",
+    "blrlogistics_BLS-2608-112.pdf": "classic",
+    "blrlogistics_BLS-2608-131.pdf": "classic",
+    "sunrisesugar_SST-761.pdf": "classic",
+    "cleanco_CFS-AUG-044.pdf": "classic"
+  },
   "findings": {
-    "missing_in_2b": [
-      "MS/0823"
-    ],
     "value_mismatch": [
       "SP/26-27/0419"
     ],
@@ -16,11 +33,14 @@
         "KFM/2026-27/118"
       ]
     ],
-    "invalid_gstin_on_invoice": [
-      "CFS/AUG/044"
+    "missing_in_2b": [
+      "MS/0823"
     ],
     "wrong_tax_head": [
       "PBE/26/0057"
+    ],
+    "invalid_gstin_on_invoice": [
+      "CFS/AUG/044"
     ],
     "in_2b_not_in_books": [
       "SST/774"
@@ -30,11 +50,13 @@
     ]
   },
   "itc_at_risk_by_invoice": {
-    "MS/0823": 6000.0,
     "SP/26-27/0419": 8100.0,
+    "MS/0823": 6000.0,
     "PBE/26/0057": 75600.0,
     "CFS/AUG/044": 15300.0
   },
   "itc_at_risk_total": 105000.0,
+  "itc_claimable_clean": 68085.0,
+  "itc_to_claim_after_confirmations": 108685.0,
   "itc_unclaimed_in_2b_only": 5250.0
 }

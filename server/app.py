@@ -67,18 +67,18 @@ def audited(fn):
 
 
 def _vendors() -> dict:
-    with open(config.DATA_DIR / "vendor_master.csv") as f:
+    with open(config.data_dir() / "vendor_master.csv") as f:
         return {row["gstin"]: row for row in csv.DictReader(f)}
 
 
 def _company() -> dict:
-    return json.loads((config.DATA_DIR / "company.json").read_text())
+    return json.loads((config.data_dir() / "company.json").read_text())
 
 
 def _gstr2b(period: str) -> dict:
     if not PERIOD_RE.match(period):
         raise ValueError("period must look like MMYYYY, e.g. 082026")
-    path = config.DATA_DIR / "portal" / f"GSTR2B_{period}.json"
+    path = config.data_dir() / "portal" / f"GSTR2B_{period}.json"
     if not path.exists():
         raise FileNotFoundError(f"No GSTR-2B download for period {period}")
     return json.loads(path.read_text())
@@ -217,14 +217,14 @@ def save_itc_register(period: str, claims: list[dict], notes: str = "") -> dict:
     Each claim is {"supplier_gstin", "gstr2b_invoice_number", "itc"}. The
     server refuses any claim that is not in that period's GSTR-2B, or whose
     ITC is more than GSTR-2B shows, so credit is never claimed on an
-    invoice the supplier hasn't reported.
+    invoice the supplier hasn't reported or that GSTR-2B marks as not available.
     """
     data = _gstr2b(period).get("data", {})
     supported = {}
     for s in data.get("docdata", {}).get("b2b", []):
         for inv in s.get("inv", []):
             tax = sum(i.get("igst", 0) + i.get("cgst", 0) + i.get("sgst", 0) for i in inv.get("items", []))
-            supported[(s["ctin"], inv["inum"])] = tax
+            supported[(s["ctin"], inv["inum"])] = tax if str(inv.get("itcavl", "Y")).upper() != "N" else None
     if not claims:
         return _refuse("no claims given")
     problems, rows, seen = [], [], set()
@@ -235,6 +235,8 @@ def save_itc_register(period: str, claims: list[dict], notes: str = "") -> dict:
             problems.append(f"{key[1]} listed twice")
         elif key not in supported:
             problems.append(f"{key[1]} from {key[0]} is not in GSTR-2B for {period}")
+        elif supported[key] is None:
+            problems.append(f"{key[1]}: GSTR-2B marks its ITC as not available")
         elif itc > supported[key] + 1:
             problems.append(f"{key[1]}: ITC {itc:,.2f} is more than GSTR-2B's {supported[key]:,.2f}")
         seen.add(key)

@@ -7,9 +7,12 @@ Input:
 For each book invoice, looks for the same (supplier GSTIN, invoice number)
 in GSTR-2B. If the number differs but the supplier, date and amount are
 close, it's reported as a fuzzy match that needs a human's yes/no rather
-than a guess. Every book invoice also gets its GSTIN checked, and every
-book invoice for an inter-state supplier is checked for the right tax head
-(IGST, not CGST+SGST).
+than a guess. Every book invoice also gets its GSTIN checked, is checked
+to be billed to this business's GSTIN, and, for an inter-state supplier,
+is checked for the right tax head (IGST, not CGST+SGST). GSTR-2B rows the
+portal marks as ITC not available (itcavl = N) are never counted as clean.
+Rows that aren't tax invoices are skipped; rows still needing a parser are
+reported as unreadable rather than matched on guessed values.
 
 CLI:
     python reconcile.py --books books.json --gstr2b GSTR2B_082026.json
@@ -61,7 +64,8 @@ def _2b_invoices(gstr2b: dict):
                 "ctin": ctin, "supplier_name": supplier.get("trdnm"),
                 "inum": inv["inum"], "date": _parse_date(inv["dt"]), "val": inv.get("val"),
                 "taxable": taxable, "tax": tax, "pos": inv.get("pos"), "itcavl": inv.get("itcavl"),
-                            })
+                "rsn": inv.get("rsn"),
+            })
     return rows
 
 
@@ -76,7 +80,7 @@ def _book_total(book: dict) -> float:
 def _finding(category, book, gstr2b_row, itc_at_risk, detail, action):
     return {
         "category": category,
-        "invoice_number": book["invoice_number"] if book else gstr2b_row["inum"],
+        "invoice_number": book.get("invoice_number") if book else gstr2b_row["inum"],
         "supplier_gstin": (gstr2b_row or {}).get("ctin") or (book or {}).get("supplier_gstin"),
         "supplier_name": (book or {}).get("supplier_name") or (gstr2b_row or {}).get("supplier_name"),
         "invoice_date": (book or {}).get("invoice_date") or ((gstr2b_row or {}).get("date") and gstr2b_row["date"].strftime("%Y-%m-%d")),
@@ -93,7 +97,8 @@ def reconcile(books: list, gstr2b: dict) -> dict:
     from gstin import validate  # local import: script also runs standalone
 
     unmatched_2b = _2b_invoices(gstr2b)
-    findings, matched = [], []
+    company_gstin = gstr2b.get("data", gstr2b).get("gstin")
+    findings, matched, skipped = [], [], []
     seen = {}
 
     def take(pred):
@@ -103,6 +108,14 @@ def reconcile(books: list, gstr2b: dict) -> dict:
         return row
 
     for book in books:
+        if book.get("looks_like_invoice") is False:
+            skipped.append(book.get("source_file"))
+            continue
+        if book.get("needs_manual_parse"):
+            findings.append(_finding("unreadable_invoice", book, None, 0,
+                "Not read yet: " + "; ".join(book.get("parse_warnings") or []) + ". Parse it before trusting this report.",
+                "write a parser for this layout, or enter it by hand"))
+            continue
         num = _norm_num(book.get("invoice_number"))
         gstin = book.get("supplier_gstin") or ""
 
@@ -126,11 +139,19 @@ def reconcile(books: list, gstr2b: dict) -> dict:
                 "ask supplier for a corrected invoice"))
             continue
 
-        # 3. Tax head: supplier state differs from place of supply -> IGST only.
+        # 3. It must be billed to this business, or the credit isn't ours to claim.
+        buyer = book.get("buyer_gstin")
+        if company_gstin and buyer and buyer != company_gstin:
+            findings.append(_finding("billed_to_other_gstin", book, None, _book_tax(book),
+                f"Invoice is billed to GSTIN {buyer}, not this business's {company_gstin}, so it won't reach "
+                f"this GSTR-2B.", "ask supplier to cancel it and reissue to the right GSTIN"))
+            continue
+
+        # 4. Tax head: supplier state differs from place of supply -> IGST only.
         interstate = book.get("place_of_supply") and gstin[:2] != book["place_of_supply"]
         wrong_head = interstate and (book.get("cgst") or book.get("sgst")) and not book.get("igst")
 
-        # 4. Find the invoice in GSTR-2B.
+        # 5. Find the invoice in GSTR-2B.
         exact = take(lambda r: r["ctin"] == gstin and _norm_num(r["inum"]) == num)
         if not exact:
             best, best_score = None, 0.0
@@ -164,6 +185,12 @@ def reconcile(books: list, gstr2b: dict) -> dict:
                 "email supplier for a corrected invoice with IGST"))
             continue
 
+        if str(exact.get("itcavl") or "Y").upper() == "N":
+            findings.append(_finding("itc_not_available_in_2b", book, exact, _book_tax(book),
+                f"GSTR-2B lists this invoice with ITC not available (reason code {exact.get('rsn') or 'none'}).",
+                "check the reason with the supplier; don't claim it this month"))
+            continue
+
         diff = round(_book_total(book) - (exact["val"] or 0), 2)
         if abs(diff) > AMOUNT_TOLERANCE:
             risk = max(0.0, _book_tax(book) - exact["tax"])
@@ -192,6 +219,7 @@ def reconcile(books: list, gstr2b: dict) -> dict:
             "itc_at_risk": round(sum(f["itc_at_risk"] for f in findings), 2),
             "itc_in_2b_not_in_books": round(sum(r["tax"] for r in unmatched_2b), 2),
             "findings_by_category": by_cat,
+            "skipped_not_invoices": skipped,
         },
         "findings": findings,
         "matched": matched,

@@ -30,6 +30,12 @@ PORT = int(os.getenv("PORT", "8000"))
 MAX_EMAILS_PER_RUN = int(os.getenv("MAX_EMAILS_PER_RUN", "8"))
 
 
+def data_dir() -> Path:
+    """The month being served: a generated one in state/scenario if present, else the fixed demo month."""
+    scenario = STATE_DIR / "scenario"
+    return scenario if (scenario / "company.json").exists() else DATA_DIR
+
+
 def vendor_address(alias: str) -> str:
     local, _, domain = DEMO_INBOX.partition("@")
     return f"{local}+{alias}@{domain}"
@@ -46,6 +52,6 @@ def check() -> list[str]:
         problems.append(f"MAIL_BACKEND must be 'local' or 'gmail', got {MAIL_BACKEND!r}")
     if MAIL_BACKEND == "gmail" and not (GMAIL_ADDRESS and GMAIL_APP_PASSWORD):
         problems.append("MAIL_BACKEND=gmail needs GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env")
-    if not (DATA_DIR / "vendor_master.csv").exists():
-        problems.append(f"No demo data in {DATA_DIR}. Run: python data/generate.py")
+    if not (data_dir() / "vendor_master.csv").exists():
+        problems.append(f"No demo data in {data_dir()}. Run: python data/generate.py")
     return problems
