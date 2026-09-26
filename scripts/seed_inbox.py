@@ -4,6 +4,7 @@
     python scripts/seed_inbox.py --reset               # clear the inbox and run state, then add them again
     python scripts/seed_inbox.py --reset --seed 42     # clear, then generate and add a new random month
     python scripts/seed_inbox.py --reset --seed random # same, with a seed picked for you
+    python scripts/seed_inbox.py --reset --seed 42 --hold-back   # keep one invoice out for a live email
 
 A random month has a different business, vendors, invoice layouts, amounts
 and problems for every seed. It is written to state/scenario/ and the MCP
@@ -47,9 +48,28 @@ def build(e: dict) -> EmailMessage:
     return msg
 
 
+def hold_back(emails: list[dict]) -> dict | None:
+    """The latest email that carries only real invoices (not a forward, price list or statement)."""
+    key_path = config.data_dir() / "answer_key.json"
+    if not key_path.exists():
+        key_path = Path(__file__).resolve().parent.parent / "tests" / "answer_key.json"
+    invoices = set(json.loads(key_path.read_text()).get("layouts", {}))
+    seen, candidates = set(), []
+    for e in sorted(emails, key=lambda e: e["date"]):
+        names = e.get("attachments") or [e["attachment"]]
+        if all(n in invoices and n not in seen for n in names):
+            candidates.append(e | {"attachments": names})
+        seen.update(names)
+    if not candidates:
+        return None
+    pick = candidates[-1]
+    return next(e for e in emails if e["id"] == pick["id"]) | {"attachments": pick["attachments"]}
+
+
 def reset():
     for name in ("audit.jsonl", "sent_log.jsonl"):
         (config.STATE_DIR / name).unlink(missing_ok=True)
+    shutil.rmtree(config.STATE_DIR / "live_demo", ignore_errors=True)
     for pattern in ("itc_register_*", "gstr3b_table4_*", "creditcatch.db"):
         for p in config.STATE_DIR.glob(pattern):
             p.unlink()
@@ -66,6 +86,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--reset", action="store_true", help="remove demo emails and state first")
     ap.add_argument("--seed", help="generate a random month from this number (or 'random') instead of the fixed one")
+    ap.add_argument("--hold-back", action="store_true",
+                    help="leave one vendor's invoice email out and save its PDF to state/live_demo/, "
+                         "so you can email it to the inbox yourself during the demo")
     args = ap.parse_args()
     if args.reset:
         reset()
@@ -81,10 +104,22 @@ def main():
     box = get_mailbox()
     emails = json.loads((config.data_dir() / "emails.json").read_text())
     batch = uuid.uuid4().hex[:6]  # fresh ids, so the inbox watcher sees a reseeded month as new mail
+    held = hold_back(emails) if args.hold_back else None
+    if held:
+        emails = [e for e in emails if e["id"] != held["id"]]
     for e in emails:
         box.append(build(e), f"{e['id']}-{batch}")
     where = config.GMAIL_ADDRESS if config.MAIL_BACKEND == "gmail" else config.STATE_DIR / "mailbox" / "inbox"
     print(f"Added {len(emails)} emails to {where}")
+    if held:
+        out = config.STATE_DIR / "live_demo"
+        shutil.rmtree(out, ignore_errors=True)
+        out.mkdir(parents=True)
+        for name in held["attachments"]:
+            shutil.copy(config.data_dir() / "invoices" / name, out / name)
+        print(f"Held back {held['from_name']}'s invoice email. During the demo, email "
+              f"{', '.join(held['attachments'])} from {out} to {config.GMAIL_ADDRESS or 'the inbox'} "
+              f"(subject: {held['subject']!r}).")
 
 
 if __name__ == "__main__":

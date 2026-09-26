@@ -165,7 +165,7 @@ Save the agent in Build Agent (**Save Agent**; TrueForge stores the name in lowe
 python scripts/watch_inbox.py              # --agent <saved name> if it isn't "creditcatch"
 ```
 
-It watches the same inbox the MCP server reads. When emails with PDF attachments arrive, it waits for the batch to settle (20 seconds without new mail), opens a new TrueForge session with the agent, tells it what arrived, and opens that session in your browser. Vendor emails and the ITC register still wait there for your approval. Reseeding the inbox (`seed_inbox.py --reset --seed N`) counts as new mail, and so does anyone emailing an invoice to the Gmail inbox. The watcher only reads mail.
+It watches the same inbox the MCP server reads. When emails with PDF attachments arrive, it waits for the batch to settle (20 seconds without new mail), opens a new TrueForge session with the agent, tells it what arrived, and opens that session in your browser. Vendor emails and the ITC register still wait there for your approval. Reseeding the inbox (`seed_inbox.py --reset --seed N`) counts as new mail, and so does anyone emailing an invoice to the Gmail inbox. The watcher only reads mail. For a live demo, `seed_inbox.py --reset --seed N --hold-back` keeps one invoice out of the month and saves its PDF to `state/live_demo/`, so you can email it in yourself and watch the run start.
 
 ### 4. Use a real Gmail inbox (optional)
 
