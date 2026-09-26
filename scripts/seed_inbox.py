@@ -131,9 +131,13 @@ def main():
         for name in held["attachments"]:
             shutil.copy(config.data_dir() / "invoices" / name, out / name)
         (out / "email.json").write_text(json.dumps(held, indent=2))
-        print(f"Held back {held['from_name']}'s invoice email. During the demo, email "
-              f"{', '.join(held['attachments'])} from {out} to {config.GMAIL_ADDRESS or 'the inbox'} "
-              f"(subject: {held['subject']!r}), or run: python scripts/seed_inbox.py --deliver-held")
+        if config.MAIL_BACKEND == "gmail":
+            print(f"Held back {held['from_name']}'s invoice email. During the demo, email "
+                  f"{', '.join(held['attachments'])} from {out} to {config.GMAIL_ADDRESS} as attachments "
+                  f"(subject: {held['subject']!r}), or run: python scripts/seed_inbox.py --deliver-held")
+        else:
+            print(f"Held back {held['from_name']}'s invoice email. The inbox is a local folder, so to make it "
+                  f"arrive during the demo run: python scripts/seed_inbox.py --deliver-held")
 
 
 def deliver_held():

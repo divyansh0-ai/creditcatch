@@ -21,6 +21,7 @@ from email.utils import parsedate_to_datetime
 from . import config
 
 DEMO_HEADER = "X-CreditCatch-Demo"
+TIMEOUT = 20  # seconds; a stalled Gmail connection must not freeze the server or the watcher
 
 
 def _summary(msg_id: str, msg: email.message.Message) -> dict | None:
@@ -86,7 +87,7 @@ class GmailMailbox:
     IMAP_HOST, SMTP_HOST = "imap.gmail.com", "smtp.gmail.com"
 
     def _imap(self, readonly=True):
-        conn = imaplib.IMAP4_SSL(self.IMAP_HOST)
+        conn = imaplib.IMAP4_SSL(self.IMAP_HOST, timeout=TIMEOUT)
         conn.login(config.GMAIL_ADDRESS, config.GMAIL_APP_PASSWORD)
         conn.select("INBOX", readonly=readonly)
         return conn
@@ -136,7 +137,7 @@ class GmailMailbox:
             conn.logout()
 
     def append(self, msg: EmailMessage, msg_id: str):
-        conn = imaplib.IMAP4_SSL(self.IMAP_HOST)
+        conn = imaplib.IMAP4_SSL(self.IMAP_HOST, timeout=TIMEOUT)
         conn.login(config.GMAIL_ADDRESS, config.GMAIL_APP_PASSWORD)
         try:
             when = imaplib.Time2Internaldate(parsedate_to_datetime(msg["Date"]))
@@ -151,7 +152,7 @@ class GmailMailbox:
         _save_seeded(seeded)
 
     def send(self, msg: EmailMessage) -> str:
-        with smtplib.SMTP_SSL(self.SMTP_HOST, 465) as smtp:
+        with smtplib.SMTP_SSL(self.SMTP_HOST, 465, timeout=TIMEOUT) as smtp:
             smtp.login(config.GMAIL_ADDRESS, config.GMAIL_APP_PASSWORD)
             smtp.send_message(msg)
         return str(msg["Message-ID"])

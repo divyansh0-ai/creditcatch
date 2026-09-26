@@ -142,13 +142,16 @@ def main(argv=None):
             ids = box.ids()
             fresh = [i for i in ids if i not in seen]
             for msg_id in fresh:
-                seen.add(msg_id)
                 s = box.summary(msg_id)
+                seen.add(msg_id)  # only once it's been read, so a dropped connection retries it next time
                 if s:
                     ledger.record_emails([s])
                     pending.append(s)
                     last_new = time.time()
                     log(f"Invoice email from {s['from']}: {s['subject']} ({len(s['attachments'])} PDF)")
+                else:
+                    log(f"New email {msg_id} has no PDF attachment, so it's not an invoice email. "
+                        "Attach the invoice PDFs as files.")
             if pending and time.time() - last_new >= args.settle:
                 batch, pending = pending, []
                 log(f"Starting CreditCatch for {len(batch)} new email(s)...")
