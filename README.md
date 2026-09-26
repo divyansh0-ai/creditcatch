@@ -60,20 +60,35 @@ In a run, the agent writes a Python script that runs in the Daytona sandbox and 
 
 ## Run it
 
-You need Python 3.11+, Node 22.14+, a Daytona API key with **Sandboxes access and Snapshots write** permission, and an API key for a model TrueForge supports.
+You need Python 3.11+, Node 22.14+, a Daytona API key (permissions below), and an API key for a model TrueForge supports.
 
 ### 1. Start the MCP server
 
 ```bash
 git clone https://github.com/divyansh0-ai/creditcatch.git
-cd CreditCatch
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+cd creditcatch
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env              # MAIL_BACKEND=local works with no accounts
 python data/generate.py           # rebuilds data/demo (already committed)
 python scripts/seed_inbox.py --reset
 python -m server                  # http://127.0.0.1:8000/mcp
 ```
+
+On Windows PowerShell:
+
+```powershell
+git clone https://github.com/divyansh0-ai/creditcatch.git
+cd creditcatch
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+python scripts/seed_inbox.py --reset
+python -m server
+```
+
+If `python -m server` says the port is in use (`WinError 10048` on Windows), a server is already running on port 8000. Use that one or stop it first.
 
 Check it without a model (in a second terminal):
 
@@ -83,14 +98,23 @@ python tests/e2e_mcp.py           # downloads every PDF over MCP, reconciles, te
 
 ### 2. Set up TrueForge
 
+TrueForge blocks connectors on `localhost` by default, so start it with its network policy relaxed. Otherwise adding the connector fails with `Outbound URL blocked for host localhost`.
+
 ```bash
-npx @truefoundry/trueforge@latest     # opens http://localhost:8790
+NETWORK_POLICY_ENABLED=false npx @truefoundry/trueforge@latest     # opens http://localhost:8790
+```
+
+On Windows PowerShell, set the variable in the same window first:
+
+```powershell
+$env:NETWORK_POLICY_ENABLED="false"
+npx @truefoundry/trueforge@latest
 ```
 
 1. **Settings → Models:** add your model provider.
-2. **Settings → Sandbox providers:** add Daytona with your API key. The first setup builds a snapshot and takes a few minutes.
+2. **Settings → Sandbox providers:** add Daytona with your API key. The key needs `write:sandboxes`, `write:snapshots` and `delete:snapshots` (a Full access key works); with less, setup fails with "missing required permissions". The first setup builds a snapshot and takes a few minutes.
 3. **Settings → Connectors → Add MCP Server:** name `creditcatch`, URL `http://localhost:8000/mcp`, no auth.
-4. **Settings → Skills:** repository `https://github.com/divyansh0-ai/creditcatch`, path `skills/gst-reconcile`, ref `main`.
+4. **Settings → Skills:** repository `https://github.com/divyansh0-ai/creditcatch`, path `skills/gst-reconcile`, ref `main`. The repository has to be public for TrueForge to fetch it.
 5. **Build Agent:**
    - Name `CreditCatch`, pick your model, and paste `agent/instructions.md` as the instructions.
    - Attach the `creditcatch` connector with all tools, and set **require approval** for `send_vendor_email` and `save_itc_register`.
