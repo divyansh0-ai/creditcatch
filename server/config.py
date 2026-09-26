@@ -7,7 +7,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
+# override: the .env file wins over values an IDE copied into the terminal when it opened.
+load_dotenv(ROOT / ".env", override=True)
 
 
 def _bool(name: str, default: bool) -> bool:
