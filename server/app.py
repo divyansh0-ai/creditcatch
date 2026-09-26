@@ -20,7 +20,7 @@ from functools import wraps
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from . import config
+from . import config, ledger
 from .mailbox import DEMO_HEADER, get_mailbox
 
 mcp = FastMCP(
@@ -109,6 +109,10 @@ def list_invoice_emails() -> dict:
     Returns message_id, sender, subject, date and attachment file names.
     """
     msgs = get_mailbox().list_messages()
+    try:
+        ledger.record_emails(msgs)  # the business's own record of invoices received; never blocks reading
+    except Exception:
+        pass
     return {"count": len(msgs), "messages": msgs}
 
 
@@ -218,13 +222,17 @@ def save_itc_register(period: str, claims: list[dict], notes: str = "") -> dict:
     server refuses any claim that is not in that period's GSTR-2B, or whose
     ITC is more than GSTR-2B shows, so credit is never claimed on an
     invoice the supplier hasn't reported or that GSTR-2B marks as not available.
+    Saved claims also go into the business's ledger (state/creditcatch.db),
+    and the result includes the GSTR-3B Table 4 figures for the period, for
+    a person to check and enter on the GST portal. Nothing is filed.
     """
     data = _gstr2b(period).get("data", {})
-    supported = {}
+    supported, found = {}, {}
     for s in data.get("docdata", {}).get("b2b", []):
         for inv in s.get("inv", []):
             tax = sum(i.get("igst", 0) + i.get("cgst", 0) + i.get("sgst", 0) for i in inv.get("items", []))
             supported[(s["ctin"], inv["inum"])] = tax if str(inv.get("itcavl", "Y")).upper() != "N" else None
+            found[(s["ctin"], inv["inum"])] = (s, inv)
     if not claims:
         return _refuse("no claims given")
     problems, rows, seen = [], [], set()
@@ -253,4 +261,14 @@ def save_itc_register(period: str, claims: list[dict], notes: str = "") -> dict:
         w = csv.DictWriter(f, fieldnames=["supplier_gstin", "gstr2b_invoice_number", "itc"])
         w.writeheader()
         w.writerows(rows)
-    return {"status": "saved", "claims": len(rows), "total_itc": total, "file": str(out.name)}
+    # Split each claim by tax head, keep it in the ledger, and build the GSTR-3B Table 4 figures.
+    detailed = []
+    for r in rows:
+        s, inv = found[(r["supplier_gstin"], r["gstr2b_invoice_number"])]
+        detailed.append(r | {"supplier_name": s.get("trdnm"), "invoice_date": inv.get("dt")}
+                        | ledger.split_by_head(r["itc"], inv))
+    ledger.save_claims(period, detailed)
+    table4 = ledger.gstr3b_table4(period, detailed, data)
+    (config.STATE_DIR / f"gstr3b_table4_{period}.json").write_text(json.dumps(table4, indent=2))
+    return {"status": "saved", "claims": len(rows), "total_itc": total, "file": str(out.name),
+            "gstr3b_table4_file": f"gstr3b_table4_{period}.json", "gstr3b_table4": table4}

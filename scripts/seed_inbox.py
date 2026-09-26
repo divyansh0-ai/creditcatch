@@ -50,8 +50,9 @@ def build(e: dict) -> EmailMessage:
 def reset():
     for name in ("audit.jsonl", "sent_log.jsonl"):
         (config.STATE_DIR / name).unlink(missing_ok=True)
-    for p in config.STATE_DIR.glob("itc_register_*"):
-        p.unlink()
+    for pattern in ("itc_register_*", "gstr3b_table4_*", "creditcatch.db"):
+        for p in config.STATE_DIR.glob(pattern):
+            p.unlink()
     shutil.rmtree(config.STATE_DIR / "scenario", ignore_errors=True)
     if config.MAIL_BACKEND == "gmail":
         n = GmailMailbox().trash_demo_messages()

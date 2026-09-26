@@ -29,7 +29,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from server import config  # noqa: E402
+from server import config, ledger  # noqa: E402
 from server.mailbox import get_mailbox  # noqa: E402
 
 
@@ -145,6 +145,7 @@ def main(argv=None):
                 seen.add(msg_id)
                 s = box.summary(msg_id)
                 if s:
+                    ledger.record_emails([s])
                     pending.append(s)
                     last_new = time.time()
                     log(f"Invoice email from {s['from']}: {s['subject']} ({len(s['attachments'])} PDF)")
