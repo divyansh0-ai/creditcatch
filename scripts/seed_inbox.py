@@ -18,6 +18,7 @@ MAIL_BACKEND=local they are .eml files under state/mailbox/.
 """
 
 import argparse
+import imaplib
 import json
 import random
 import shutil
@@ -92,6 +93,10 @@ def main():
                     help="leave one vendor's invoice email out and save its PDF to state/live_demo/, "
                          "so you can email it to the inbox yourself during the demo")
     args = ap.parse_args()
+    problems = [p for p in config.check() if "demo data" not in p]
+    if problems:
+        sys.exit("\n".join(problems))
+    print(f"Mail: {config.GMAIL_ADDRESS + ' (Gmail)' if config.MAIL_BACKEND == 'gmail' else 'local folder (MAIL_BACKEND=local)'}")
     if args.reset:
         reset()
     if args.seed:
@@ -125,4 +130,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except imaplib.IMAP4.error as e:
+        sys.exit(f"Gmail refused the login or a command: {e}\n"
+                 "Check GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env (an app password, not your normal password; "
+                 "it needs 2-Step Verification on that account).")

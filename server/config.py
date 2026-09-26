@@ -50,8 +50,12 @@ def check() -> list[str]:
     problems = []
     if MAIL_BACKEND not in ("local", "gmail"):
         problems.append(f"MAIL_BACKEND must be 'local' or 'gmail', got {MAIL_BACKEND!r}")
-    if MAIL_BACKEND == "gmail" and not (GMAIL_ADDRESS and GMAIL_APP_PASSWORD):
-        problems.append("MAIL_BACKEND=gmail needs GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env")
+    if MAIL_BACKEND == "gmail":
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", GMAIL_ADDRESS):
+            problems.append(f"GMAIL_ADDRESS in .env should be the demo inbox, e.g. you@gmail.com (got {GMAIL_ADDRESS!r})")
+        if len(GMAIL_APP_PASSWORD) != 16:
+            problems.append(f"GMAIL_APP_PASSWORD in .env should be Google's 16-letter app password "
+                            f"(got {len(GMAIL_APP_PASSWORD)} characters). Make one at myaccount.google.com/apppasswords")
     if not (data_dir() / "vendor_master.csv").exists():
         problems.append(f"No demo data in {data_dir()}. Run: python data/generate.py")
     return problems
