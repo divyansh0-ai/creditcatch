@@ -10,7 +10,7 @@ Built on [TrueForge](https://trueforge.dev) for the TrueFoundry × Polaris "Agen
 
 **What the agent reaches.** Only our MCP server: a read-only inbox, the GSTR-2B file, the vendor master, and two write tools that email a vendor and save the ITC register. In a Daytona sandbox it runs the skill's scripts and code it writes itself, including a parser for invoice layouts the extractor won't guess at.
 
-**Where it stops.** Vendor emails and the register save need human approval in TrueForge, and it asks when two invoice numbers only look alike. The server enforces limits regardless: vendors are named by GSTIN, never a typed address, one email each, and claims GSTR-2B doesn't support are refused. Every call is logged.
+**Where it stops.** Vendor emails and the register save need human approval in TrueForge, and it asks when two invoice numbers only look alike. The server enforces limits regardless: vendors are named by GSTIN, never a typed address, one email each, and claims GSTR-2B doesn't support are refused. It works out the GSTR-3B Table 4 figures but never files them, and every call is logged.
 
 **Architecture.** TrueForge agent → our FastMCP server → Daytona sandbox. Every rupee figure comes from code, and each invoice must pass an arithmetic check.
 
@@ -50,6 +50,8 @@ flowchart LR
 | `scripts/seed_inbox.py` | Puts a month's emails into the inbox and resets the demo (`--seed N` for a random month). |
 
 In a run, the agent writes a Python script that runs in the Daytona sandbox and pulls every PDF and the GSTR-2B through the MCP tools (TrueForge Code Mode, so no credentials enter the sandbox). It runs the skill's extractor, and when invoices arrive in a layout the extractor can't read, it reads the page text and writes a parser for that layout on the spot, then proves its output with `check_books.py` before anything is matched. It then reconciles, asks you about anything ambiguous, drafts one email per vendor, and saves the ITC register.
+
+Saving the register also records the claims, split into IGST, CGST and SGST, in a small SQLite ledger (`state/creditcatch.db`), next to every invoice email the inbox has received. It then works out the GSTR-3B Table 4 figures (4A(5) eligible ITC, 4C net ITC, 4D(2) ineligible ITC) and writes them to `state/gstr3b_table4_<period>.json`. Those are the numbers to check against the auto-filled GSTR-3B on the GST portal. `python scripts/ledger.py` prints what's recorded. CreditCatch never files anything: entering the return on the portal stays with you.
 
 ## What it catches
 

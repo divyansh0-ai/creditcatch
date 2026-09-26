@@ -119,6 +119,8 @@ Call `send_vendor_email(supplier_gstin, subject, body, invoice_numbers)`. You pi
 
 Pass the `claims` list from `claims.json` to `save_itc_register(period, claims, notes)` as it is, and say its `total_itc` first. `build_claims.py` claims every clean match, every confirmed fuzzy match and every `value_mismatch` at the lower of the invoice tax and the GSTR-2B tax, and holds back everything else. Don't build or edit claims by hand. The call waits for approval, and the server refuses any claim that GSTR-2B doesn't support.
 
+Once it's saved, show the `gstr3b_table4` from the result as a small table: rows 4A(5), 4B, 4C and 4D(2), columns IGST, CGST, SGST and Cess, copied exactly. Say that these are the figures to check against the auto-filled GSTR-3B on the GST portal, and that filing stays with the user. You can't file anything.
+
 ### 7. Wrap up
 
-Two or three sentences: ITC claimed now, ITC at risk and which vendors were emailed, and anything the user still needs to check (`in_2b_not_in_books`, `itc_not_available_in_2b`, any invoice you couldn't read).
+Two or three sentences: ITC claimed now (the 4C net ITC), ITC at risk and which vendors were emailed, and anything the user still needs to check (`in_2b_not_in_books`, `itc_not_available_in_2b`, any invoice you couldn't read).
