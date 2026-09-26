@@ -33,6 +33,8 @@ def run(seed: int, verbose=False) -> list[str]:
         key = generate.main(["--seed", str(seed), "--out", str(out), "--key", str(out / "key.json")]) if seed else \
             generate.main(["--out", str(out), "--key", str(out / "key.json")])
         emails = json.loads((out / "emails.json").read_text())
+        if seed and "tally" not in key["layouts"].values():
+            errs.append("no Tally-layout invoice, so the agent never has to write a parser")
         books = []
         for e in emails:
             for name in e["attachments"]:

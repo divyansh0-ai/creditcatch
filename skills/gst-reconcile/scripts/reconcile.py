@@ -110,6 +110,10 @@ def reconcile(books: list, gstr2b: dict) -> dict:
     company_gstin = gstr2b.get("data", gstr2b).get("gstin")
     findings, matched, skipped = [], [], []
     seen = {}
+    # A GSTR-2B row whose number exactly matches some invoice in the books belongs to that invoice,
+    # so it is never offered as a fuzzy match for a different one.
+    book_keys = {(b.get("supplier_gstin") or "", _norm_num(b.get("invoice_number"))) for b in books
+                 if b.get("looks_like_invoice") is not False and not b.get("needs_manual_parse")}
 
     def take(pred):
         row = next((r for r in unmatched_2b if pred(r)), None)
@@ -167,7 +171,7 @@ def reconcile(books: list, gstr2b: dict) -> dict:
         if not exact:
             best, best_score = None, 0.0
             for r in unmatched_2b:
-                if r["ctin"] != gstin:
+                if r["ctin"] != gstin or (r["ctin"], _norm_num(r["inum"])) in book_keys:
                     continue
                 d = _parse_date(book.get("invoice_date"))
                 if r["date"] and d and abs((r["date"] - d).days) > FUZZY_DATE_DAYS:

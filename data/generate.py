@@ -302,14 +302,27 @@ def random_month(seed: int) -> dict:
         rng.choice(active)["layout"] = "tally"
     # One vendor on the master is idle this month; it may still show up in GSTR-2B.
     idle = active.pop(rng.randrange(len(active))) if len(active) > 6 else None
+    if not any(v["layout"] == "tally" for v in active):
+        rng.choice(active)["layout"] = "tally"
+
+    # Invoice numbers are unique within the month, even across vendors, so the answer key can use them.
+    taken = set()
+
+    def number(v, step):
+        v["n"] += step
+        inum = v["style"].format(P=v["P"], FY="26-27", n=v["n"])
+        while _norm_num(inum) in taken:
+            v["n"] += 1
+            inum = v["style"].format(P=v["P"], FY="26-27", n=v["n"])
+        taken.add(_norm_num(inum))
+        return inum
 
     invoices = []
     for v in active:
         count = 1 if v["items"][0][2] == "month" else rng.randint(1, 3)
         days = sorted(rng.sample(range(1, 31), count))
         for day in days:
-            v["n"] += rng.randint(1, 9)
-            inum = v["style"].format(P=v["P"], FY="26-27", n=v["n"])
+            inum = number(v, rng.randint(1, 9))
             lines = []
             for desc, hsn, unit, lo, hi, rate in rng.sample(v["items"], rng.randint(1, len(v["items"]))):
                 price = rng.randint(lo, hi) if hi < 1000 else rng.randrange(lo, hi, 100)
@@ -380,7 +393,7 @@ def random_month(seed: int) -> dict:
             vendors[slug] = {k: h[k] for k in ("slug", "name", "state_code", "gstin", "address")}
             active.append(h)
             nights = rng.randint(2, 4)
-            i = {"vendor": slug, "inum": h["style"].format(P=h["P"], FY="26-27", n=h["n"]),
+            i = {"vendor": slug, "inum": number(h, 0),
                  "date": f"2026-08-{rng.randint(3, 28):02d}", "layout": h["layout"], "pos": st,
                  "lines": [(f"Room, business trip ({nights} nights)", "9963", nights, "night",
                             rng.randrange(8000, 12000, 100), 18)],
@@ -393,13 +406,14 @@ def random_month(seed: int) -> dict:
     only_in_2b = []
     if rng.random() < 0.7:
         src = idle or rng.choice(active)
+        if not src["items"]:  # the hotel added for itc_na has no catalogue to invent a bill from
+            src = next(v for v in active if v["items"])
         if idle:
             src["n"] += 1
         desc, hsn, unit, lo, hi, rate = src["items"][0]
         price = rng.randint(lo, hi) if hi < 1000 else rng.randrange(lo, hi, 100)
         qty = 1 if unit in ("month", "visit", "lot", "licence") else max(1, round(rng.uniform(20000, 120000) / price))
-        src["n"] += 50
-        only_in_2b.append({"vendor": src["slug"], "inum": src["style"].format(P=src["P"], FY="26-27", n=src["n"]),
+        only_in_2b.append({"vendor": src["slug"], "inum": number(src, 50),
                            "date": f"2026-08-{rng.randint(1, 30):02d}", "layout": src["layout"],
                            "lines": [(desc, hsn, qty, unit, price, rate)], "defect": None, "tweak": {}})
 
