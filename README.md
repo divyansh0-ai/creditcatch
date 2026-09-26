@@ -4,6 +4,24 @@ An agent that does a small Indian business's monthly GST purchase reconciliation
 
 Built on [TrueForge](https://trueforge.dev) for the TrueFoundry × Polaris "Agents That Act" hackathon, 26 September 2026.
 
+## Write-up
+
+**The problem.** Indian businesses can reclaim the GST paid on purchases (input tax credit, ITC) only for invoices their suppliers reported correctly in the monthly GSTR-2B statement. Accountants check every invoice by hand and chase the vendors who got it wrong. A missed mismatch is lost money.
+
+**What the agent reaches.** Only our MCP server: a read-only inbox, the GSTR-2B file, the vendor master, and two write tools that email a vendor and save the ITC register. In a Daytona sandbox it runs the skill's scripts and code it writes itself, including a parser for invoice layouts the extractor won't guess at.
+
+**Where it stops.** Vendor emails and the register save need human approval in TrueForge, and it asks when two invoice numbers only look alike. The server enforces limits regardless: vendors are named by GSTIN, never a typed address, one email each, and claims GSTR-2B doesn't support are refused. Every call is logged.
+
+**Architecture.** TrueForge agent → our FastMCP server → Daytona sandbox. Every rupee figure comes from code, and each invoice must pass an arithmetic check.
+
+**How TrueForge was used.** It holds the agent's instructions, the `gst-reconcile` skill imported from GitHub, and our MCP connector with approval on both write tools. Code Mode lets sandbox scripts call tools without credentials, and our inbox watcher uses the session API to start a run when invoice mail arrives.
+
+**Real vs mocked.** The TrueForge runs, sandbox code, MCP server and approvals are real, and so is Gmail mode over IMAP/SMTP. GSTR-2B is a saved file, since the portal API needs a licensed GSP. Invoices and vendors are generated, a new month for every seed.
+
+**Known limits.** The MCP server has no auth of its own, so approvals exist only in TrueForge. Vendor addresses are plus-aliases of the demo inbox. It runs one company on flat files, and send limits reset with the inbox, not per run. B2B invoices only: no credit notes, reverse charge or OCR.
+
+The same write-up is in [WRITEUP.pdf](WRITEUP.pdf). The rest of this README has the details and setup steps.
+
 ## Why this job
 
 When a business buys something it pays GST to the supplier and can claim that tax back as ITC. It can only claim it if the supplier reported the same invoice to the government, which shows up in the buyer's monthly GSTR-2B statement. When an invoice is missing there, or the amount or tax head is wrong, the credit is lost until the supplier fixes it. Accountants match these by hand every month and then chase each vendor by email.
@@ -159,7 +177,7 @@ Run `python scripts/seed_inbox.py --reset`. The demo emails are appended straigh
 
 ## Demo
 
-The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md) and the submission write-up in [docs/SUBMISSION.md](docs/SUBMISSION.md).
+The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md). The submission write-up is [at the top of this README](#write-up) and in [WRITEUP.pdf](WRITEUP.pdf).
 
 ## Tests
 
@@ -179,7 +197,7 @@ python tests/e2e_mcp.py           # over MCP, against whichever month is loaded
 
 ## AI tools used
 
-This project was built with help from Claude (Anthropic) through Claude Code, for planning, writing code and writing this README. The agent itself runs on TrueForge with whichever model you configure.
+This project was built with help from Claude (Anthropic) through Claude Code, for planning, writing code and writing this README. The agent itself runs on TrueForge with whichever model you configure; our runs used OpenAI's gpt-5.4-mini.
 
 ## License
 
