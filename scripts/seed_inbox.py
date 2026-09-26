@@ -5,6 +5,7 @@
     python scripts/seed_inbox.py --reset --seed 42     # clear, then generate and add a new random month
     python scripts/seed_inbox.py --reset --seed random # same, with a seed picked for you
     python scripts/seed_inbox.py --reset --seed 42 --hold-back   # keep one invoice out for a live email
+    python scripts/seed_inbox.py --deliver-held        # deliver that held-back email now (no Gmail needed)
 
 A random month has a different business, vendors, invoice layouts, amounts
 and problems for every seed. It is written to state/scenario/ and the MCP
@@ -92,11 +93,16 @@ def main():
     ap.add_argument("--hold-back", action="store_true",
                     help="leave one vendor's invoice email out and save its PDF to state/live_demo/, "
                          "so you can email it to the inbox yourself during the demo")
+    ap.add_argument("--deliver-held", action="store_true",
+                    help="put the held-back invoice email into the inbox now, as if the vendor just sent it "
+                         "(the live moment without sending a real email)")
     args = ap.parse_args()
     problems = [p for p in config.check() if "demo data" not in p]
     if problems:
         sys.exit("\n".join(problems))
     print(f"Mail: {config.GMAIL_ADDRESS + ' (Gmail)' if config.MAIL_BACKEND == 'gmail' else 'local folder (MAIL_BACKEND=local)'}")
+    if args.deliver_held:
+        return deliver_held()
     if args.reset:
         reset()
     if args.seed:
@@ -124,9 +130,23 @@ def main():
         out.mkdir(parents=True)
         for name in held["attachments"]:
             shutil.copy(config.data_dir() / "invoices" / name, out / name)
+        (out / "email.json").write_text(json.dumps(held, indent=2))
         print(f"Held back {held['from_name']}'s invoice email. During the demo, email "
               f"{', '.join(held['attachments'])} from {out} to {config.GMAIL_ADDRESS or 'the inbox'} "
-              f"(subject: {held['subject']!r}).")
+              f"(subject: {held['subject']!r}), or run: python scripts/seed_inbox.py --deliver-held")
+
+
+def deliver_held():
+    path = config.STATE_DIR / "live_demo" / "email.json"
+    if not path.exists():
+        sys.exit("Nothing held back. Run: python scripts/seed_inbox.py --reset --seed <n> --hold-back")
+    e = json.loads(path.read_text())
+    msg = build(e)
+    del msg["Date"]
+    msg["Date"] = format_datetime(datetime.now().astimezone())
+    get_mailbox().append(msg, f"{e['id']}-live-{uuid.uuid4().hex[:6]}")
+    where = config.GMAIL_ADDRESS if config.MAIL_BACKEND == "gmail" else config.STATE_DIR / "mailbox" / "inbox"
+    print(f"Delivered {e['from_name']}'s invoice email ({', '.join(e['attachments'])}) to {where}")
 
 
 if __name__ == "__main__":
