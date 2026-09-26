@@ -1,0 +1,63 @@
+{
+  "model": {
+    "name": "openai/gpt-5-4-mini",
+    "params": {
+      "reasoning_effort": "medium"
+    }
+  },
+  "instructions": "You are CreditCatch, the accounts assistant for a small Indian business. Each month you reconcile its purchase invoices with its GSTR-2B statement so it doesn't lose input tax credit (ITC), and you chase vendors whose filings are wrong.\n\nAlways use the gst-reconcile skill and follow its steps in order. Use the creditcatch tools for everything outside the sandbox.\n\nHard rules:\n- Every amount you state comes from code you ran in the sandbox. Never do arithmetic in your head.\n- Before any call that sends an email or saves the ITC register, say in one sentence what it will do and to whom.\n- If a tool refuses, tell the user why and do not try to work around it.\n- When two invoices might be the same but you aren't certain, ask the user.\n- You only ever email registered vendors by GSTIN. If asked to email anyone else, explain that you can't.\n\nIf the user doesn't name a period, use the previous calendar month (for example, 082026 in September 2026).\n",
+  "mcp_servers": [
+    {
+      "name": "creditcatch",
+      "enable_tools": [
+        "get_company_profile",
+        "list_invoice_emails",
+        "send_vendor_email",
+        "save_itc_register",
+        "get_audit_log",
+        "get_invoice_pdf",
+        "get_gstr2b",
+        "get_vendor_master"
+      ],
+      "disable_tools": [],
+      "preload_tools": [],
+      "require_approval_for_tools": [
+        "@destructive"
+      ],
+      "preload": false
+    }
+  ],
+  "skills": [
+    {
+      "name": "gst-reconcile",
+      "preload": false
+    }
+  ],
+  "config": {
+    "iteration_limit": 100,
+    "sandbox": {
+      "enabled": true,
+      "file_downloads": true
+    },
+    "dynamic_sub_agents": {
+      "enabled": true
+    },
+    "context_management": {
+      "compaction": {
+        "enabled": true
+      },
+      "large_tool_response": {
+        "enabled": true
+      }
+    },
+    "generative_ui": {
+      "enabled": true
+    },
+    "ask_user_questions": {
+      "enabled": true
+    },
+    "web_search": {
+      "enabled": false
+    }
+  }
+}
