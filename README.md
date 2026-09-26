@@ -65,7 +65,7 @@ You need Python 3.11+, Node 22.14+, a Daytona API key with **Sandboxes access an
 ### 1. Start the MCP server
 
 ```bash
-git clone https://github.com/divyansh0-ai/CreditCatch.git
+git clone https://github.com/divyansh0-ai/creditcatch.git
 cd CreditCatch
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -90,7 +90,7 @@ npx @truefoundry/trueforge@latest     # opens http://localhost:8790
 1. **Settings → Models:** add your model provider.
 2. **Settings → Sandbox providers:** add Daytona with your API key. The first setup builds a snapshot and takes a few minutes.
 3. **Settings → Connectors → Add MCP Server:** name `creditcatch`, URL `http://localhost:8000/mcp`, no auth.
-4. **Settings → Skills:** repository `https://github.com/divyansh0-ai/CreditCatch`, path `skills/gst-reconcile`, ref `main`.
+4. **Settings → Skills:** repository `https://github.com/divyansh0-ai/creditcatch`, path `skills/gst-reconcile`, ref `main`.
 5. **Build Agent:**
    - Name `CreditCatch`, pick your model, and paste `agent/instructions.md` as the instructions.
    - Attach the `creditcatch` connector with all tools, and set **require approval** for `send_vendor_email` and `save_itc_register`.
