@@ -21,6 +21,7 @@ import json
 import random
 import shutil
 import sys
+import uuid
 from email.message import EmailMessage
 from email.utils import format_datetime, formataddr, make_msgid
 from datetime import datetime
@@ -78,8 +79,9 @@ def main():
         sys.exit("\n".join(problems))
     box = get_mailbox()
     emails = json.loads((config.data_dir() / "emails.json").read_text())
+    batch = uuid.uuid4().hex[:6]  # fresh ids, so the inbox watcher sees a reseeded month as new mail
     for e in emails:
-        box.append(build(e), e["id"])
+        box.append(build(e), f"{e['id']}-{batch}")
     where = config.GMAIL_ADDRESS if config.MAIL_BACKEND == "gmail" else config.STATE_DIR / "mailbox" / "inbox"
     print(f"Added {len(emails)} emails to {where}")
 

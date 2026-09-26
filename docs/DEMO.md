@@ -19,6 +19,8 @@
 | 4:10 | Approval card for save_itc_register. Approve. | "It saves the ITC register, and the server refuses any claim GSTR-2B doesn't support, even if I approve it." |
 | 4:30 | `state/audit.jsonl` | "Every call, allowed or refused, is logged. Clone it, run four commands, and it works with a local inbox and no accounts. Thank you." |
 
+**Hands-free variant.** Run `python scripts/watch_inbox.py` beside the server before you start. Then the 0:20 step is the trigger: reseeding the inbox (or anyone emailing an invoice to the Gmail inbox) makes the watcher start CreditCatch on its own and open the run in the browser, so you don't type the prompt at 0:40. Say: "Nobody asked it to run. Mail arrived, so it started, and it will still stop for my approval before anything leaves."
+
 Judges will ask about the architecture. Be ready to explain:
 - **Why our own MCP server?** TrueForge's catalog has no Gmail connector. Keeping the guards in our own code means a prompt can't talk its way past them.
 - **What's gated and why?** Sending email and saving the ITC register are the two actions with consequences outside the sandbox. Reading never changes anything.

@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "skills" / "gst-reconcile" / "scripts"))
 sys.path.insert(0, str(ROOT / "data"))
 sys.path.insert(0, str(ROOT / "tests"))
 import generate  # noqa: E402
+from build_claims import build  # noqa: E402
 from check_books import check_row  # noqa: E402
 from extract import extract_invoice  # noqa: E402
 from reconcile import reconcile  # noqa: E402
@@ -67,6 +68,14 @@ def run(seed: int, verbose=False) -> list[str]:
         errs.append(f"ITC at risk want {key['itc_at_risk_total']} got {rep['summary']['itc_at_risk']}")
     if abs(rep["summary"]["itc_claimable_clean"] - key["itc_claimable_clean"]) > 0.01:
         errs.append(f"clean ITC want {key['itc_claimable_clean']} got {rep['summary']['itc_claimable_clean']}")
+    fuzzy = [f["invoice_number"] for f in rep["findings"] if f["category"] == "number_format_needs_confirmation"]
+    claims = build(rep, confirm=fuzzy)
+    if abs(claims["total_itc"] - key["itc_to_claim_after_confirmations"]) > 0.01:
+        errs.append(f"claims want {key['itc_to_claim_after_confirmations']} got {claims['total_itc']}")
+    supported = {(s["ctin"], i["inum"]) for s in gstr2b["data"]["docdata"]["b2b"] for i in s["inv"]}
+    for c in claims["claims"]:
+        if (c["supplier_gstin"], c["gstr2b_invoice_number"]) not in supported:
+            errs.append(f"claim not in GSTR-2B: {c}")
     if verbose:
         print(json.dumps(rep["summary"], indent=1))
     return errs

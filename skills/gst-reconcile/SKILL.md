@@ -13,6 +13,14 @@ The scripts next to this file do the parsing and matching. Find them with:
 SKILL_DIR=$(dirname "$(find /opt/tfy/skills -name reconcile.py -path '*gst-reconcile*' | head -1)")
 ```
 
+Each shell command starts fresh, so set `SKILL_DIR` in every command that uses it. In Python files use:
+
+```python
+import glob, os, sys
+SKILL_DIR = os.path.dirname(glob.glob("/opt/tfy/skills/**/gst-reconcile/**/reconcile.py", recursive=True)[0])
+sys.path.insert(0, SKILL_DIR)
+```
+
 ## Rules
 
 - **Never do arithmetic yourself.** Every amount you show comes from `report.json`. If a number isn't there, compute it with code in the sandbox and show the code.
@@ -51,8 +59,8 @@ python "$SKILL_DIR/extract.py" 'invoices/*.pdf' --text-dir text > books.json
 
 The page text of every PDF, with its spatial layout kept, is in `text/<name>.txt` (the row's `text_file`).
 
-1. Print one of those text files and look at where each field sits. In some layouts the label and the value are in different lines or columns.
-2. Write `/workspace/creditcatch/parsers/<layout>.py` with a function that takes the text and returns a row with the same keys as `extract.py`: `source_file`, `supplier_name`, `supplier_gstin`, `buyer_gstin`, `invoice_number`, `invoice_date` (YYYY-MM-DD), `place_of_supply` (2-digit state code), `taxable_value`, `cgst`, `sgst`, `igst`, `tax_rate_pct`, `invoice_total`, `looks_like_invoice: true`, `needs_manual_parse: false`, `parse_warnings: []`. Helpers you can import after `sys.path.insert(0, SKILL_DIR)`: `from gstin import STATES` (state code to name) and `from extract import parse_date`. The supplier's GSTIN comes first on the page and the buyer's second.
+1. Print one of those text files and look at where each field sits. In some layouts the label and the value are in different lines or columns. Check the other flagged files share that layout before using one parser for all of them.
+2. Write `/workspace/creditcatch/parsers/<layout>.py` with a function `parse(text, source_file)` that returns a row with the same keys as `extract.py`: `source_file`, `supplier_name`, `supplier_gstin`, `buyer_gstin`, `invoice_number`, `invoice_date` (YYYY-MM-DD), `place_of_supply` (2-digit state code), `taxable_value`, `cgst`, `sgst`, `igst`, `tax_rate_pct`, `invoice_total`, `looks_like_invoice: true`, `needs_manual_parse: false`, `parse_warnings: []`. Helpers you can import after `sys.path.insert(0, SKILL_DIR)`: `from gstin import STATES` (state code to name) and `from extract import parse_date`. The supplier's GSTIN comes first on the page and the buyer's second. Give the script a `__main__` that parses the listed files and writes their rows into `books.json` in place of the unread ones.
 3. Run it on every file that needs it, put those rows into `books.json` in place of the unread ones, and check the whole file:
 
 ```bash
@@ -78,10 +86,10 @@ What each category means:
 |---|---|---|
 | `missing_in_2b` | supplier hasn't reported the invoice; ITC can't be claimed | email supplier to file it in GSTR-1 |
 | `value_mismatch` | supplier reported a different value; only the GSTR-2B tax is claimable | email supplier to amend GSTR-1 |
-| `wrong_tax_head` | inter-state supply charged as CGST+SGST instead of IGST | email supplier for a corrected invoice |
-| `invalid_gstin_on_invoice` | GSTIN on the invoice fails the checksum | email supplier for a corrected invoice |
+| `wrong_tax_head` | inter-state supply charged as CGST+SGST instead of IGST | email supplier for a corrected invoice; hold the ITC until it arrives, even if GSTR-2B shows it |
+| `invalid_gstin_on_invoice` | GSTIN on the invoice fails the checksum | email supplier for a corrected invoice; hold the ITC until it arrives, even if GSTR-2B shows it |
 | `billed_to_other_gstin` | invoice is made out to a different GSTIN, so the credit won't reach this business | email supplier to cancel it and reissue to the right GSTIN |
-| `itc_not_available_in_2b` | supplier reported it, but GSTR-2B marks the ITC as not available | tell the user; don't claim it; no email |
+| `itc_not_available_in_2b` | supplier reported it, but GSTR-2B marks the ITC as not available (the `detail` says why, e.g. a hotel stay in another state) | tell the user why; don't claim it; no email |
 | `number_format_needs_confirmation` | same supplier, date and amount, different invoice number | ask the user |
 | `duplicate_in_books` | the same invoice arrived twice; counted once | mention it, no email |
 | `in_2b_not_in_books` | supplier reported an invoice the business never received | tell the user, no email |
@@ -89,11 +97,17 @@ What each category means:
 
 ### 3. Show the result
 
-Lead with the headline: invoices checked, clean matches, and **ITC at risk** (`summary.itc_at_risk`). Then the findings table, grouped by category. Use a rendered table if the UI supports it.
+Lead with the headline: invoices checked (`summary.invoices_checked`), clean matches, and **ITC at risk** (`summary.itc_at_risk`). Then the findings table, grouped by category. Use a rendered table if the UI supports it.
 
 ### 4. Confirm fuzzy matches
 
-For each `number_format_needs_confirmation` finding, call `ask_user_question` with the finding's `detail`. A yes makes it a match (claim it under the GSTR-2B invoice number). A no makes it `missing_in_2b`.
+For each `number_format_needs_confirmation` finding, call `ask_user_question` with the finding's `detail`. Then build the claims with the answers (book invoice numbers):
+
+```bash
+python "$SKILL_DIR/build_claims.py" --report report.json --confirm KFM-118 --reject INV-9 > claims.json
+```
+
+A yes claims it under the GSTR-2B invoice number; a no treats it as missing from GSTR-2B. `claims.json` has the updated `itc_at_risk`; use that number from now on.
 
 ### 5. Email vendors
 
@@ -103,12 +117,7 @@ Call `send_vendor_email(supplier_gstin, subject, body, invoice_numbers)`. You pi
 
 ### 6. Save the ITC register
 
-Build the claims with code from `report.json`:
-- every `matched` invoice at its ITC,
-- every confirmed fuzzy match, under its GSTR-2B invoice number,
-- every `value_mismatch` at the GSTR-2B tax only.
-
-Hold back everything else, including `itc_not_available_in_2b`. Call `save_itc_register(period, claims, notes)`; it waits for approval, and the server refuses any claim that GSTR-2B doesn't support.
+Pass the `claims` list from `claims.json` to `save_itc_register(period, claims, notes)` as it is, and say its `total_itc` first. `build_claims.py` claims every clean match, every confirmed fuzzy match and every `value_mismatch` at the lower of the invoice tax and the GSTR-2B tax, and holds back everything else. Don't build or edit claims by hand. The call waits for approval, and the server refuses any claim that GSTR-2B doesn't support.
 
 ### 7. Wrap up
 

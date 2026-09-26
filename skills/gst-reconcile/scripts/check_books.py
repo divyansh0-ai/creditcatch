@@ -1,6 +1,7 @@
 """Check a books.json before reconciling it.
 
-Every row must be a readable tax invoice whose numbers add up: taxable value
+Every row must be a readable tax invoice with both GSTINs and the place of
+supply, whose numbers add up: taxable value
 plus tax equals the total, CGST equals SGST, IGST isn't mixed with
 CGST/SGST, and the tax matches the rate. Run it after extract.py and again
 after merging rows from any parser you wrote. It exits 1 and lists every
@@ -25,9 +26,10 @@ def check_row(r: dict) -> list[str]:
         return ["not a tax invoice; remove it from books.json"]
     if r.get("needs_manual_parse"):
         out.append("still marked needs_manual_parse")
-    for f in ("supplier_gstin", "invoice_number", "invoice_date", "taxable_value", "invoice_total"):
+    for f in ("supplier_gstin", "buyer_gstin", "invoice_number", "invoice_date", "place_of_supply",
+              "taxable_value", "invoice_total"):
         if r.get(f) in (None, ""):
-            out.append(f"missing {f}")
+            out.append(f"missing {f}" + (" (no ITC without the buyer's GSTIN on the invoice)" if f == "buyer_gstin" else ""))
     for f in ("supplier_gstin", "buyer_gstin"):
         if r.get(f) and not GSTIN_SHAPE.match(r[f]):
             out.append(f"{f} {r[f]!r} is not shaped like a GSTIN")

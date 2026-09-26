@@ -1,7 +1,8 @@
 """Mailbox backends: a local folder of .eml files, or a real Gmail inbox.
 
-Both expose the same three operations:
+Both expose the same operations:
   list_messages()                 -> messages that carry PDF attachments
+  ids(), summary(msg_id)          -> for the inbox watcher (scripts/watch_inbox.py)
   get_attachment(msg_id, name)    -> bytes
   send(msg)                       -> message id
 Reading never changes the mailbox: Gmail is opened read-only and fetched
@@ -54,6 +55,12 @@ class LocalMailbox:
             raise KeyError(f"No message {msg_id!r}")
         return email.message_from_bytes(path.read_bytes(), policy=policy.default)
 
+    def ids(self) -> list[str]:
+        return [p.stem for p in sorted(self.inbox.glob("*.eml"))]
+
+    def summary(self, msg_id: str) -> dict | None:
+        return _summary(msg_id, self._load(msg_id))
+
     def list_messages(self) -> list[dict]:
         out = []
         for path in sorted(self.inbox.glob("*.eml")):
@@ -88,6 +95,21 @@ class GmailMailbox:
         if typ != "OK" or not data or data[0] is None:
             raise KeyError(f"No message {uid!r}")
         return email.message_from_bytes(data[0][1], policy=policy.default)
+
+    def ids(self) -> list[str]:
+        conn = self._imap()
+        try:
+            typ, data = conn.uid("SEARCH", None, "ALL")
+            return [u.decode() for u in data[0].split()]
+        finally:
+            conn.logout()
+
+    def summary(self, msg_id: str) -> dict | None:
+        conn = self._imap()
+        try:
+            return _summary(msg_id, self._fetch(conn, msg_id))
+        finally:
+            conn.logout()
 
     def list_messages(self) -> list[dict]:
         conn = self._imap()

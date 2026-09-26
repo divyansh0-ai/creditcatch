@@ -135,7 +135,17 @@ npx @truefoundry/trueforge@latest
    - Add the `gst-reconcile` skill. Turn on the sandbox, clarifying questions, and file downloads.
 6. Open a chat with the agent and send: **Reconcile our August 2026 purchases.**
 
-### 3. Use a real Gmail inbox (optional)
+### 3. Let new invoice emails start the agent (optional)
+
+Save the agent in Build Agent (**Save Agent**; TrueForge stores the name in lowercase, e.g. `creditcatch`), then in a third terminal:
+
+```bash
+python scripts/watch_inbox.py              # --agent <saved name> if it isn't "creditcatch"
+```
+
+It watches the same inbox the MCP server reads. When emails with PDF attachments arrive, it waits for the batch to settle (20 seconds without new mail), opens a new TrueForge session with the agent, tells it what arrived, and opens that session in your browser. Vendor emails and the ITC register still wait there for your approval. Reseeding the inbox (`seed_inbox.py --reset --seed N`) counts as new mail, and so does anyone emailing an invoice to the Gmail inbox. The watcher only reads mail.
+
+### 4. Use a real Gmail inbox (optional)
 
 Make a throwaway Gmail account, turn on 2-Step Verification, create an app password, then set this in `.env`:
 
@@ -145,7 +155,7 @@ GMAIL_ADDRESS=your-demo@gmail.com
 GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
 ```
 
-Run `python scripts/seed_inbox.py --reset`. The demo emails are appended straight into the inbox over IMAP, and vendor emails go to plus-aliases like `your-demo+shreepack@gmail.com`, so they land back in the same inbox where you can show them. `--reset` moves every demo message to Trash and clears `state/`.
+Run `python scripts/seed_inbox.py --reset`. The demo emails are appended straight into the inbox over IMAP, and vendor emails go to plus-aliases like `your-demo+shreepack@gmail.com`, so they land back in the same inbox where you can show them. `--reset` moves every demo message to Trash and clears `state/`. Restart `python -m server` (and the watcher) after changing `.env`. Anyone can also email a real invoice PDF to the address: it shows up like any other invoice, and since it isn't billed to the demo business and its supplier isn't in the vendor master, the agent flags it and the server won't email that supplier.
 
 ## Demo
 

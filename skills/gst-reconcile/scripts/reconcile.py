@@ -29,6 +29,13 @@ import json
 from datetime import datetime
 from difflib import SequenceMatcher
 
+# GSTR-2B reasons for itcavl = "N".
+RSN = {
+    "P": "the place of supply is in the supplier's state, not yours (for example a hotel stay in another "
+         "state), so the tax was charged as CGST+SGST of that state and can't be claimed by a buyer registered elsewhere",
+    "C": "the supplier reported it after the Section 16(4) time limit",
+}
+
 AMOUNT_TOLERANCE = 1.0       # rupees; below this, two totals count as "same"
 FUZZY_SCORE_MIN = 0.55       # invoice-number similarity needed to suggest a fuzzy match
 FUZZY_DATE_DAYS = 3          # dates must be within this many days
@@ -87,6 +94,9 @@ def _finding(category, book, gstr2b_row, itc_at_risk, detail, action):
         "book_total": _book_total(book) if book else None,
         "gstr2b_total": (gstr2b_row or {}).get("val"),
         "itc_at_risk": round(itc_at_risk, 2),
+        "book_tax": _book_tax(book) if book else None,
+        "gstr2b_invoice_number": (gstr2b_row or {}).get("inum"),
+        "gstr2b_tax": round(gstr2b_row["tax"], 2) if gstr2b_row else None,
         "detail": detail,
         "suggested_action": action,
         "source_file": (book or {}).get("source_file"),
@@ -119,7 +129,7 @@ def reconcile(books: list, gstr2b: dict) -> dict:
         num = _norm_num(book.get("invoice_number"))
         gstin = book.get("supplier_gstin") or ""
 
-        # 1. Duplicate copies of the same invoice (same supplier + number, or same file content).
+        # 1. Duplicate copies of the same invoice (same supplier + number).
         key = (gstin, num)
         if key in seen:
             findings.append(_finding("duplicate_in_books", book, None, 0,
@@ -148,7 +158,8 @@ def reconcile(books: list, gstr2b: dict) -> dict:
             continue
 
         # 4. Tax head: supplier state differs from place of supply -> IGST only.
-        interstate = book.get("place_of_supply") and gstin[:2] != book["place_of_supply"]
+        pos = book.get("place_of_supply") or (book.get("buyer_gstin") or company_gstin or "")[:2]
+        interstate = pos and gstin[:2] != pos
         wrong_head = interstate and (book.get("cgst") or book.get("sgst")) and not book.get("igst")
 
         # 5. Find the invoice in GSTR-2B.
@@ -180,14 +191,15 @@ def reconcile(books: list, gstr2b: dict) -> dict:
 
         if wrong_head:
             findings.append(_finding("wrong_tax_head", book, exact, _book_tax(book),
-                f"Supplier is in state {gstin[:2]} and place of supply is {book['place_of_supply']}, "
+                f"Supplier is in state {gstin[:2]} and place of supply is {pos}, "
                 f"so IGST applies, but the invoice charges CGST+SGST.",
                 "email supplier for a corrected invoice with IGST"))
             continue
 
         if str(exact.get("itcavl") or "Y").upper() == "N":
+            why = RSN.get(str(exact.get("rsn") or "").upper(), f"reason code {exact.get('rsn') or 'not given'}")
             findings.append(_finding("itc_not_available_in_2b", book, exact, _book_tax(book),
-                f"GSTR-2B lists this invoice with ITC not available (reason code {exact.get('rsn') or 'none'}).",
+                f"GSTR-2B lists this invoice with ITC not available: {why}.",
                 "check the reason with the supplier; don't claim it this month"))
             continue
 
@@ -201,7 +213,8 @@ def reconcile(books: list, gstr2b: dict) -> dict:
             continue
 
         matched.append({"invoice_number": book["invoice_number"], "supplier_gstin": gstin,
-                        "itc": _book_tax(book), "source_file": book.get("source_file")})
+                        "gstr2b_invoice_number": exact["inum"],
+                        "itc": round(min(_book_tax(book), exact["tax"]), 2), "source_file": book.get("source_file")})
 
     for r in unmatched_2b:
         findings.append(_finding("in_2b_not_in_books", None, r, 0,
@@ -220,6 +233,9 @@ def reconcile(books: list, gstr2b: dict) -> dict:
             "itc_in_2b_not_in_books": round(sum(r["tax"] for r in unmatched_2b), 2),
             "findings_by_category": by_cat,
             "skipped_not_invoices": skipped,
+            "invoices_checked": len(books) - len(skipped) - by_cat.get("duplicate_in_books", 0),
+            **({"warning": f"{by_cat['unreadable_invoice']} invoice(s) not read yet; their GSTR-2B rows show up as "
+                           "in_2b_not_in_books until they are parsed"} if by_cat.get("unreadable_invoice") else {}),
         },
         "findings": findings,
         "matched": matched,

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "skills" / "gst-reconcile" / "scripts"))
 sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT))
+from build_claims import build  # noqa: E402
 from extract import extract_invoice  # noqa: E402
 from reconcile import reconcile  # noqa: E402
 from reference_tally_parser import parse  # noqa: E402
@@ -111,10 +112,14 @@ async def main():
                 r = await call(session, "save_itc_register", period=key["period"],
                                claims=[{"supplier_gstin": na[0][0], "gstr2b_invoice_number": na[0][1], "itc": 1}])
                 check(r["status"] == "refused", "refuses to claim ITC that GSTR-2B marks not available")
-            ok_claims = [{"supplier_gstin": m["supplier_gstin"], "gstr2b_invoice_number": m["invoice_number"],
-                          "itc": m["itc"]} for m in report["matched"]]
+            fuzzy = [f["invoice_number"] for f in report["findings"] if f["category"] == "number_format_needs_confirmation"]
+            built = build(report, confirm=fuzzy)
+            if "itc_to_claim_after_confirmations" in key:
+                check(abs(built["total_itc"] - key["itc_to_claim_after_confirmations"]) < 0.01,
+                      f"claims total {key['itc_to_claim_after_confirmations']} (got {built['total_itc']})")
+            ok_claims = built["claims"]
             r = await call(session, "save_itc_register", period=key["period"], claims=ok_claims)
-            check(r["status"] == "saved", f"saves the clean claims ({r})")
+            check(r["status"] == "saved", f"saves the claims ({r})")
 
             log = await call(session, "get_audit_log", limit=5)
             check(len(log["entries"]) == 5, "audit log records calls")

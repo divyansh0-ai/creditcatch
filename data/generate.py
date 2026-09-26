@@ -108,20 +108,20 @@ def classic() -> dict:
                 "defect": kw.get("defect"), "tweak": kw.get("tweak", {})}
 
     invoices = [
-        inv("shreepack", "SP/26-27/0412", "2026-08-04", 18, [("5-ply corrugated cake boxes 10x10", "4819", 2000, "pcs", 25)]),
-        inv("shreepack", "SP/26-27/0419", "2026-08-18", 18, [("5-ply corrugated cake boxes 10x10", "4819", 10000, "pcs", 25)],
+        inv("shreepack", "SP/26-27/0412", "2026-08-04", 18, [("Printed laminated cake pouches", "3923", 2000, "pcs", 25)]),
+        inv("shreepack", "SP/26-27/0419", "2026-08-18", 18, [("Printed laminated cake pouches", "3923", 10000, "pcs", 25)],
             tweak={"taxable": 205000}),
         inv("shreepack", "SP/26-27/0431", "2026-08-28", 18, [("Printed bread bags 1 kg", "3923", 1500, "pcs", 25)]),
-        inv("kaveriflour", "KFM-118", "2026-08-06", 5, [("Maida, 50 kg bag", "1101", 40, "bags", 1850)],
+        inv("kaveriflour", "KFM-118", "2026-08-06", 5, [("Maida, 25 kg bag", "1101", 80, "bags", 925)],
             tweak={"inum": "KFM/2026-27/118"}),
-        inv("kaveriflour", "KFM-131", "2026-08-22", 5, [("Maida, 50 kg bag", "1101", 30, "bags", 1850)]),
+        inv("kaveriflour", "KFM-131", "2026-08-22", 5, [("Maida, 25 kg bag", "1101", 60, "bags", 925)]),
         inv("deccandairy", "DDP/0871", "2026-08-09", 5, [("Unsalted white butter", "0405", 400, "kg", 480)]),
         inv("deccandairy", "DDP/0902", "2026-08-23", 5, [("Unsalted white butter", "0405", 350, "kg", 480)]),
         inv("deccandairy", "DDP/0934", "2026-08-30", 5, [("Unsalted white butter", "0405", 200, "kg", 480)]),
         inv("malnadspice", "MS/0823", "2026-08-12", 5, [("Cardamom and cinnamon blend", "0910", 300, "kg", 400)],
             tweak={"missing": True}),
         inv("malnadspice", "MS/0839", "2026-08-26", 5, [("Cardamom and cinnamon blend", "0910", 150, "kg", 400)]),
-        inv("punebakeq", "PBE/26/0057", "2026-08-14", 18, [("Two-deck electric baking oven", "8417", 1, "unit", 420000)],
+        inv("punebakeq", "PBE/26/0057", "2026-08-14", 18, [("Two-deck gas-fired baking oven", "8417", 1, "unit", 420000)],
             defect="cgst_sgst_on_interstate"),
         inv("blrlogistics", "BLS/2608/112", "2026-08-08", 18, [("Local delivery services, 1-15 Aug", "9968", 1, "lot", 38000)]),
         inv("blrlogistics", "BLS/2608/131", "2026-08-29", 18, [("Local delivery services, 16-31 Aug", "9968", 1, "lot", 41500)]),
@@ -170,7 +170,7 @@ BUYERS = [
 RAW_VENDORS = {
     "bakery": [
         ("kaveriflour", "Kaveri Flour Mills", "29", "AAJFK7730Q", "KIADB Hebbal, Mysuru 570016",
-         [("Maida, 50 kg bag", "1101", "bags", 1700, 1950, 5), ("Whole wheat atta, 50 kg bag", "1101", "bags", 1550, 1800, 5)]),
+         [("Maida, 25 kg bag", "1101", "bags", 850, 975, 5), ("Whole wheat atta, 25 kg bag", "1101", "bags", 775, 900, 5)]),
         ("deccandairy", "Deccan Dairy Products Pvt Ltd", "29", "AAGCD2204R", "88, Hosur Road, Bengaluru 560068",
          [("Unsalted white butter", "0405", "kg", 440, 520, 5)]),
         ("sunrisesugar", "Sunrise Sugar Traders", "29", "AAMFS4410C", "VV Nagar, Mandya 571401",
@@ -217,7 +217,7 @@ RAW_VENDORS = {
 # Services a business buys locally; the vendor is in the buyer's own state.
 LOCAL_SERVICES = [
     ("facility", "{city} Facility Services Pvt Ltd", "C", "9985", "Housekeeping and deep cleaning, {month}", 25000, 90000),
-    ("security", "{city} Security Services", "F", "9985", "Security guard services, {month}", 40000, 80000),
+    ("security", "{city} Security Services Pvt Ltd", "C", "9985", "Security guard services, {month}", 40000, 80000),
     ("ca", "Iyer Rao & Co, Chartered Accountants", "F", "9982", "Accounting and GST compliance fee, {month}", 15000, 35000),
     ("courier", "{city} Express Couriers", "F", "9968", "Courier and local delivery, {month}", 8000, 45000),
     ("fibernet", "{city} Fibernet Pvt Ltd", "C", "9984", "Leased line internet, {month}", 3000, 9000),
@@ -227,6 +227,15 @@ ELSEWHERE = [
      [("Accounting software subscription, annual", "9973", "licence", 18000, 42000, 18)]),
     ("swiftlog", "Swift Logistics India Pvt Ltd", "27", "AAMCS9031Q", "Bhiwandi, Thane 421302",
      [("Line-haul freight forwarding services", "9967", "lot", 22000, 60000, 18)]),
+]
+
+# A hotel stay in another state: the place of supply is the hotel's state, so it is billed with
+# CGST+SGST of that state and GSTR-2B shows the ITC as not available (reason P) to a buyer
+# registered elsewhere. This is the usual real-world "itcavl: N".
+HOTELS = [
+    ("hotelmumbai", "Sea Breeze Business Hotel Pvt Ltd", "27", "AAECS7702H", "Andheri East, Mumbai 400069"),
+    ("hoteldelhi", "Capital Residency Hotels Pvt Ltd", "07", "AAFCC3318R", "Aerocity, New Delhi 110037"),
+    ("hotelgoa", "Coastline Resorts Pvt Ltd", "30", "AADCC9154G", "Dona Paula, Goa 403004"),
 ]
 
 NUMBER_STYLES = ["{P}/{FY}/{n:04d}", "{P}-{n}", "{P}/{n:04d}", "INV-{n:05d}", "{P}/AUG/{n:03d}", "{n}", "2608/{n:03d}"]
@@ -364,9 +373,19 @@ def random_month(seed: int) -> dict:
                 i["defect"] = "wrong_buyer_gstin"
                 i["buyer_gstin"] = make(other, b["pan"])
         elif p == "itc_na":
-            i = pick()
-            if i:
-                i["tweak"] = {"itcavl": "N", "rsn": "C"}
+            slug, name, st, pan, addr = rng.choice([h for h in HOTELS if h[2] != company["state_code"]])
+            h = {"slug": slug, "name": name, "state_code": st, "pan": pan, "address": addr, "gstin": make(st, pan),
+                 "layout": rng.choice(LAYOUTS), "style": rng.choice(NUMBER_STYLES), "P": _initials(name),
+                 "n": rng.randint(100, 900), "items": []}
+            vendors[slug] = {k: h[k] for k in ("slug", "name", "state_code", "gstin", "address")}
+            active.append(h)
+            nights = rng.randint(2, 4)
+            i = {"vendor": slug, "inum": h["style"].format(P=h["P"], FY="26-27", n=h["n"]),
+                 "date": f"2026-08-{rng.randint(3, 28):02d}", "layout": h["layout"], "pos": st,
+                 "lines": [(f"Room, business trip ({nights} nights)", "9963", nights, "night",
+                            rng.randrange(8000, 12000, 100), 18)],
+                 "defect": None, "tweak": {"itcavl": "N", "rsn": "P"}}
+            invoices.append(i)
         if i and (i["tweak"].get("inum") is None and "inum" in i["tweak"]):
             i["tweak"] = {}
 
@@ -448,7 +467,7 @@ def printed(sc: dict, inv: dict) -> dict:
     company, v = sc["company"], (sc["vendors"].get(inv["vendor"]) or next(
         x for x in sc["extra_vendors"] if x["slug"] == inv["vendor"]))
     buyer_gstin = inv.get("buyer_gstin") or company["gstin"]
-    pos = buyer_gstin[:2]
+    pos = inv.get("pos") or buyer_gstin[:2]
     interstate = v["state_code"] != pos and inv.get("defect") != "cgst_sgst_on_interstate"
     rows = []
     for rate, taxable in sorted(rate_groups(inv["lines"]).items()):
@@ -467,7 +486,8 @@ def gstr2b_rows(sc: dict, inv: dict):
         return None
     company = sc["company"]
     v = sc["vendors"].get(inv["vendor"]) or next(x for x in sc["extra_vendors"] if x["slug"] == inv["vendor"])
-    interstate = v["state_code"] != company["state_code"]
+    pos = inv.get("pos") or company["state_code"]
+    interstate = v["state_code"] != pos
     groups = rate_groups(inv["lines"])
     if "taxable" in tw:
         (rate,) = groups
@@ -478,7 +498,7 @@ def gstr2b_rows(sc: dict, inv: dict):
     val = round(sum(i["txval"] + i["igst"] + i["cgst"] + i["sgst"] for i in items), 2)
     return v, {"inum": tw.get("inum", inv["inum"]),
                "dt": datetime.strptime(inv["date"], "%Y-%m-%d").strftime("%d-%m-%Y"),
-               "val": val, "typ": "R", "pos": company["state_code"], "rev": "N",
+               "val": val, "typ": "R", "pos": pos, "rev": "N",
                "itcavl": tw.get("itcavl", "Y"), "rsn": tw.get("rsn", ""), "diffprcnt": 1, "srctyp": "",
                "items": items}
 

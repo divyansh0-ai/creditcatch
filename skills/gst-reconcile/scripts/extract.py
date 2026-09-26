@@ -40,7 +40,8 @@ TAXABLE_RE = re.compile(rf"(?:Taxable Value|Sub\s*Total|Taxable Amount|Total Tax
 TOTAL_RE = re.compile(rf"(?:Invoice Total|Grand Total|Total Amount|Amount Payable|Total Invoice Value)\s*:?\s*{CUR}\s*{AMT}", re.I)
 SUPPLIER_RE = re.compile(r"Original for Recipient\s*[\r\n]+([^\n]+)")
 DATE_FORMATS = ("%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d-%b-%Y", "%d %b %Y", "%d-%b-%y", "%d/%m/%y")
-REQUIRED = ("supplier_gstin", "invoice_number", "invoice_date", "taxable_value", "invoice_total")
+REQUIRED = ("supplier_gstin", "buyer_gstin", "invoice_number", "invoice_date", "place_of_supply",
+            "taxable_value", "invoice_total")
 
 
 def _num(s: str) -> float:
