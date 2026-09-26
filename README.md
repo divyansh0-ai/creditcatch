@@ -109,6 +109,10 @@ GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
 
 Run `python scripts/seed_inbox.py --reset`. The demo emails are appended straight into the inbox over IMAP, and vendor emails go to plus-aliases like `your-demo+shreepack@gmail.com`, so they land back in the same inbox where you can show them. `--reset` moves every demo message to Trash and clears `state/`.
 
+## Demo
+
+The five-minute demo script is in [docs/DEMO.md](docs/DEMO.md).
+
 ## Tests
 
 ```bash
