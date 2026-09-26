@@ -11,6 +11,7 @@ with BODY.PEEK so nothing is even marked as read.
 
 import email
 import imaplib
+import json
 import smtplib
 import uuid
 from email import policy
@@ -139,9 +140,15 @@ class GmailMailbox:
         conn.login(config.GMAIL_ADDRESS, config.GMAIL_APP_PASSWORD)
         try:
             when = imaplib.Time2Internaldate(parsedate_to_datetime(msg["Date"]))
-            conn.append("INBOX", "", when, bytes(msg))
+            typ, _ = conn.append("INBOX", "", when, bytes(msg))
+            if typ != "OK":
+                raise RuntimeError(f"Gmail refused to add {msg['Subject']!r}")
         finally:
             conn.logout()
+        # Gmail doesn't index custom headers, so remember each seeded Message-ID for --reset.
+        seeded = _load_seeded()
+        seeded.append(str(msg["Message-ID"]))
+        _save_seeded(seeded)
 
     def send(self, msg: EmailMessage) -> str:
         with smtplib.SMTP_SSL(self.SMTP_HOST, 465) as smtp:
@@ -149,18 +156,48 @@ class GmailMailbox:
             smtp.send_message(msg)
         return str(msg["Message-ID"])
 
-    def trash_demo_messages(self) -> int:
-        """Used only by scripts/seed_inbox.py --reset, never by the agent."""
+    def trash_demo_messages(self, filenames=()) -> int:
+        """Used only by scripts/seed_inbox.py --reset, never by the agent.
+
+        Moves to Trash the emails seed_inbox added (found by the Message-IDs it
+        recorded, since Gmail doesn't search custom headers) and any email
+        carrying one of `filenames` (the invoice held back for a live email).
+        """
         conn = self._imap(readonly=False)
         try:
+            uids = set()
+            queries = [f'"rfc822msgid:{m.strip("<>")}"' for m in _load_seeded()]
+            queries += [f'"filename:{n}"' for n in filenames]
+            for q in queries:
+                typ, data = conn.uid("SEARCH", "X-GM-RAW", q)
+                if typ == "OK" and data and data[0]:
+                    uids.update(data[0].split())
             typ, data = conn.uid("SEARCH", None, f'HEADER {DEMO_HEADER} ""')
-            uids = data[0].split()
-            for uid in uids:
+            if typ == "OK" and data and data[0]:
+                uids.update(data[0].split())
+            for uid in sorted(uids, key=int):
                 conn.uid("STORE", uid, "+X-GM-LABELS", "\\Trash")
             conn.expunge()
+            _save_seeded([])
             return len(uids)
         finally:
             conn.logout()
+
+
+def _seeded_path():
+    return config.STATE_DIR / "gmail_seeded.json"
+
+
+def _load_seeded() -> list[str]:
+    try:
+        return json.loads(_seeded_path().read_text())
+    except (FileNotFoundError, ValueError):
+        return []
+
+
+def _save_seeded(ids: list[str]):
+    config.STATE_DIR.mkdir(parents=True, exist_ok=True)
+    _seeded_path().write_text(json.dumps(ids))
 
 
 def get_mailbox():

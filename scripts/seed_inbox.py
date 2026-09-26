@@ -12,9 +12,9 @@ server serves it straight away (no restart). The answer key is in
 state/scenario/answer_key.json. A plain --reset goes back to the fixed month.
 
 With MAIL_BACKEND=gmail the emails are appended straight into the Gmail
-inbox over IMAP (no second account needed) and --reset moves every message
-tagged X-CreditCatch-Demo to Trash. With MAIL_BACKEND=local they are .eml
-files under state/mailbox/.
+inbox over IMAP (no second account needed) and --reset moves the ones it
+added, plus any email carrying the held-back invoice, to Trash. With
+MAIL_BACKEND=local they are .eml files under state/mailbox/.
 """
 
 import argparse
@@ -67,6 +67,14 @@ def hold_back(emails: list[dict]) -> dict | None:
 
 
 def reset():
+    if config.MAIL_BACKEND == "gmail":
+        # The held-back invoice may have been emailed in live; clear that email too.
+        live = [p.name for p in (config.STATE_DIR / "live_demo").glob("*.pdf")]
+        n = GmailMailbox().trash_demo_messages(live)
+        print(f"Moved {n} demo emails to Gmail Trash")
+    else:
+        shutil.rmtree(config.STATE_DIR / "mailbox", ignore_errors=True)
+        print("Cleared the local mailbox")
     for name in ("audit.jsonl", "sent_log.jsonl"):
         (config.STATE_DIR / name).unlink(missing_ok=True)
     shutil.rmtree(config.STATE_DIR / "live_demo", ignore_errors=True)
@@ -74,12 +82,6 @@ def reset():
         for p in config.STATE_DIR.glob(pattern):
             p.unlink()
     shutil.rmtree(config.STATE_DIR / "scenario", ignore_errors=True)
-    if config.MAIL_BACKEND == "gmail":
-        n = GmailMailbox().trash_demo_messages()
-        print(f"Moved {n} demo emails to Gmail Trash")
-    else:
-        shutil.rmtree(config.STATE_DIR / "mailbox", ignore_errors=True)
-        print("Cleared the local mailbox")
 
 
 def main():
