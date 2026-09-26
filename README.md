@@ -148,10 +148,12 @@ npx @truefoundry/trueforge@latest
 3. **Settings → Connectors → Add MCP Server:** name `creditcatch`, URL `http://localhost:8000/mcp`, no auth.
 4. **Settings → Skills:** repository `https://github.com/divyansh0-ai/creditcatch`, path `skills/gst-reconcile`, ref `main`. The repository has to be public for TrueForge to fetch it.
 5. **Build Agent:**
-   - Name `CreditCatch`, pick your model, and paste `agent/instructions.md` as the instructions.
+   - Name `creditcatch`, pick your model, and paste `agent/instructions.md` as the instructions.
    - Attach the `creditcatch` connector with all tools, and set **require approval** for `send_vendor_email` and `save_itc_register`.
    - Add the `gst-reconcile` skill. Turn on the sandbox, clarifying questions, and file downloads.
-6. Open a chat with the agent and send: **Reconcile our August 2026 purchases.**
+   - Click **Save Agent**.
+6. Check the approval gates: `python scripts/export_agent.py` reads the saved agent from TrueForge, says whether both write tools pause for approval, and saves its setup to `agent/creditcatch.agent.json`. It refuses to write the file if it spots anything that looks like a secret.
+7. Open a chat with the agent and send: **Reconcile our August 2026 purchases.**
 
 ### 3. Let new invoice emails start the agent (optional)
 
