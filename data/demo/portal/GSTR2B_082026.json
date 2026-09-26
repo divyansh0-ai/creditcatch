@@ -1,0 +1,421 @@
+{
+  "data": {
+    "gstin": "29AAHCN4821K1Z4",
+    "rtnprd": "082026",
+    "version": "1.0",
+    "gendt": "14-09-2026",
+    "docdata": {
+      "b2b": [
+        {
+          "ctin": "29AAKCS5512M1ZU",
+          "trdnm": "SHREE PACKAGING PVT LTD",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "SP/26-27/0412",
+              "dt": "04-08-2026",
+              "val": 59000.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 50000,
+                  "igst": 0.0,
+                  "cgst": 4500.0,
+                  "sgst": 4500.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "SP/26-27/0419",
+              "dt": "18-08-2026",
+              "val": 241900.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 205000,
+                  "igst": 0.0,
+                  "cgst": 18450.0,
+                  "sgst": 18450.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "SP/26-27/0431",
+              "dt": "28-08-2026",
+              "val": 44250.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 37500,
+                  "igst": 0.0,
+                  "cgst": 3375.0,
+                  "sgst": 3375.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AAJFK7730Q1ZH",
+          "trdnm": "KAVERI FLOUR MILLS",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "KFM/2026-27/118",
+              "dt": "06-08-2026",
+              "val": 77700.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 5,
+                  "txval": 74000,
+                  "igst": 0.0,
+                  "cgst": 1850.0,
+                  "sgst": 1850.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "KFM-131",
+              "dt": "22-08-2026",
+              "val": 58275.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 5,
+                  "txval": 55500,
+                  "igst": 0.0,
+                  "cgst": 1387.5,
+                  "sgst": 1387.5,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AAGCD2204R1ZC",
+          "trdnm": "DECCAN DAIRY PRODUCTS PVT LTD",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "DDP/0871",
+              "dt": "09-08-2026",
+              "val": 215040.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 12,
+                  "txval": 192000,
+                  "igst": 0.0,
+                  "cgst": 11520.0,
+                  "sgst": 11520.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "DDP/0902",
+              "dt": "23-08-2026",
+              "val": 188160.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 12,
+                  "txval": 168000,
+                  "igst": 0.0,
+                  "cgst": 10080.0,
+                  "sgst": 10080.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "DDP/0934",
+              "dt": "30-08-2026",
+              "val": 107520.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 12,
+                  "txval": 96000,
+                  "igst": 0.0,
+                  "cgst": 5760.0,
+                  "sgst": 5760.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AAQFM6619L1ZG",
+          "trdnm": "MALNAD SPICES & CO",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "MS/0839",
+              "dt": "26-08-2026",
+              "val": 63000.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 5,
+                  "txval": 60000,
+                  "igst": 0.0,
+                  "cgst": 1500.0,
+                  "sgst": 1500.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "27AAFCP3348H1ZB",
+          "trdnm": "PUNE BAKERY EQUIPMENT PVT LTD",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "PBE/26/0057",
+              "dt": "14-08-2026",
+              "val": 495600.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 420000,
+                  "igst": 75600.0,
+                  "cgst": 0.0,
+                  "sgst": 0.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AAVFB9027D1Z3",
+          "trdnm": "BENGALURU LOGISTICS SERVICES",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "BLS/2608/112",
+              "dt": "08-08-2026",
+              "val": 44840.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 38000,
+                  "igst": 0.0,
+                  "cgst": 3420.0,
+                  "sgst": 3420.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "BLS/2608/131",
+              "dt": "29-08-2026",
+              "val": 48970.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 41500,
+                  "igst": 0.0,
+                  "cgst": 3735.0,
+                  "sgst": 3735.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AAMFS4410C1ZC",
+          "trdnm": "SUNRISE SUGAR TRADERS",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "SST/761",
+              "dt": "11-08-2026",
+              "val": 198450.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 5,
+                  "txval": 189000,
+                  "igst": 0.0,
+                  "cgst": 4725.0,
+                  "sgst": 4725.0,
+                  "cess": 0
+                }
+              ]
+            },
+            {
+              "inum": "SST/774",
+              "dt": "25-08-2026",
+              "val": 110250.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 5,
+                  "txval": 105000,
+                  "igst": 0.0,
+                  "cgst": 2625.0,
+                  "sgst": 2625.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ctin": "29AADCC8156E1ZK",
+          "trdnm": "CLEANCO FACILITY SERVICES PVT LTD",
+          "supfildt": "11-09-2026",
+          "supprd": "082026",
+          "inv": [
+            {
+              "inum": "CFS/AUG/044",
+              "dt": "31-08-2026",
+              "val": 100300.0,
+              "typ": "R",
+              "pos": "29",
+              "rev": "N",
+              "itcavl": "Y",
+              "rsn": "",
+              "diffprcnt": 1,
+              "srctyp": "",
+              "items": [
+                {
+                  "num": 1,
+                  "rt": 18,
+                  "txval": 85000,
+                  "igst": 0.0,
+                  "cgst": 7650.0,
+                  "sgst": 7650.0,
+                  "cess": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

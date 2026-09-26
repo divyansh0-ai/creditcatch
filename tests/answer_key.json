@@ -1,0 +1,40 @@
+{
+  "company_gstin": "29AAHCN4821K1Z4",
+  "period": "082026",
+  "invoices_in_books": 15,
+  "emails": 16,
+  "findings": {
+    "missing_in_2b": [
+      "MS/0823"
+    ],
+    "value_mismatch": [
+      "SP/26-27/0419"
+    ],
+    "number_format_needs_confirmation": [
+      [
+        "KFM-118",
+        "KFM/2026-27/118"
+      ]
+    ],
+    "invalid_gstin_on_invoice": [
+      "CFS/AUG/044"
+    ],
+    "wrong_tax_head": [
+      "PBE/26/0057"
+    ],
+    "in_2b_not_in_books": [
+      "SST/774"
+    ],
+    "duplicate_in_books": [
+      "DDP/0902"
+    ]
+  },
+  "itc_at_risk_by_invoice": {
+    "MS/0823": 6000.0,
+    "SP/26-27/0419": 8100.0,
+    "PBE/26/0057": 75600.0,
+    "CFS/AUG/044": 15300.0
+  },
+  "itc_at_risk_total": 105000.0,
+  "itc_unclaimed_in_2b_only": 5250.0
+}
